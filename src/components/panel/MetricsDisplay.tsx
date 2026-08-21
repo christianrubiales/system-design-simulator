@@ -49,19 +49,19 @@ export function MetricsDisplay() {
       {/* Summary — big tabular value, dimmed inline unit, muted uppercase label */}
       <div className="grid grid-cols-2 gap-2">
         <div className="rounded-lg bg-zinc-800/70 px-3 py-2.5">
-          <p className="metric-label text-[10px]">Throughput</p>
+          <p className="metric-label text-[11px]">Throughput</p>
           <p className="metric-value mt-1 font-mono text-2xl font-semibold leading-none text-zinc-50">
             {abbrev(result.throughput)}
             <span className="ml-1 align-baseline text-xs font-normal text-zinc-500">req/s</span>
           </p>
         </div>
         <div className="rounded-lg bg-zinc-800/70 px-3 py-2.5">
-          <p className="metric-label text-[10px]">Total Latency</p>
+          <p className="metric-label text-[11px]">Total Latency</p>
           <p className="metric-value mt-1 font-mono text-2xl font-semibold leading-none text-zinc-50">
             {result.totalLatencyMs.toFixed(0)}
             <span className="ml-1 align-baseline text-xs font-normal text-zinc-500">ms</span>
           </p>
-          <p className="mt-1 text-[10px] text-zinc-500">longest path</p>
+          <p className="mt-1 text-[11px] text-zinc-500">longest path</p>
         </div>
       </div>
 
@@ -103,13 +103,13 @@ export function MetricsDisplay() {
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <div>
-                    <p className="metric-label text-[9px]">QPS</p>
+                    <p className="metric-label text-[10px]">QPS</p>
                     <p className="font-mono text-xs tabular-nums text-zinc-200">
                       {abbrev(m.incomingQPS)}
                     </p>
                   </div>
                   <div>
-                    <p className="metric-label text-[9px]">Util</p>
+                    <p className="metric-label text-[10px]">Util</p>
                     <div className="flex items-center gap-1">
                       <div className="h-1 w-8 overflow-hidden rounded-full bg-zinc-700">
                         <div
@@ -129,7 +129,7 @@ export function MetricsDisplay() {
                     </div>
                   </div>
                   <div>
-                    <p className="metric-label text-[9px]">Latency</p>
+                    <p className="metric-label text-[10px]">Latency</p>
                     <p className="font-mono text-xs tabular-nums text-zinc-200">
                       {m.latencyMs.toFixed(0)}ms
                     </p>

@@ -123,11 +123,11 @@ export function LearningPath() {
                     <span className={`text-xs font-semibold ${TIER_COLORS[tier.name] ?? "text-zinc-300"}`}>
                       {tier.name}
                     </span>
-                    <span className="text-[10px] text-zinc-400">
+                    <span className="text-[11px] text-zinc-400">
                       {completedCount}/{totalCount}
                     </span>
                   </div>
-                  <p className="text-[10px] text-zinc-400 mt-0.5">{tier.description}</p>
+                  <p className="text-[11px] text-zinc-400 mt-0.5">{tier.description}</p>
                   {/* Progress bar */}
                   <div className="mt-1.5 h-1 w-full rounded-full bg-zinc-700">
                     <div
@@ -205,7 +205,7 @@ export function LearningPath() {
                           </div>
                           <Badge
                             variant="outline"
-                            className={`h-4 shrink-0 px-1.5 text-[10px] font-medium ${getDifficultyColor(problem.difficulty)}`}
+                            className={`h-4 shrink-0 px-1.5 text-[11px] font-medium ${getDifficultyColor(problem.difficulty)}`}
                           >
                             {problem.difficulty}
                           </Badge>
@@ -215,7 +215,7 @@ export function LearningPath() {
                             {concepts.map((c) => (
                               <span
                                 key={c}
-                                className="rounded bg-zinc-800 px-1 py-0.5 text-[10px] text-zinc-400"
+                                className="rounded bg-zinc-800 px-1 py-0.5 text-[11px] text-zinc-400"
                               >
                                 {c}
                               </span>

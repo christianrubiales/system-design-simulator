@@ -63,7 +63,7 @@ export function InterviewBar() {
               {/* Circle */}
               <button
                 onClick={() => useInterviewStore.getState().setPhase(i)}
-                className={`flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold transition-colors ${
+                className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold transition-colors ${
                   i === currentPhase
                     ? "bg-cyan-500 text-white"
                     : i < currentPhase
@@ -92,7 +92,7 @@ export function InterviewBar() {
           <p className="truncate text-xs font-medium text-zinc-200">
             {phases[currentPhase].name}
           </p>
-          <p className="hidden truncate text-[10px] text-zinc-400 sm:block">
+          <p className="hidden truncate text-[11px] text-zinc-400 sm:block">
             {phases[currentPhase].description}
           </p>
         </div>
@@ -104,7 +104,7 @@ export function InterviewBar() {
           {/* Phase timer */}
           <div className="flex items-center gap-1.5">
             <Clock className="hidden h-3.5 w-3.5 text-zinc-500 sm:block" />
-            <span className={`whitespace-nowrap font-mono text-[10px] sm:text-xs ${phaseTimerColor}`}>
+            <span className={`whitespace-nowrap font-mono text-[11px] sm:text-xs ${phaseTimerColor}`}>
               Phase: {formatTime(phaseElapsed)} / {formatTime(targetSeconds)}
             </span>
           </div>
@@ -112,7 +112,7 @@ export function InterviewBar() {
           <div className="h-4 w-px bg-zinc-700" />
 
           {/* Total timer */}
-          <span className={`whitespace-nowrap font-mono text-[10px] sm:text-xs ${totalTimerColor}`}>
+          <span className={`whitespace-nowrap font-mono text-[11px] sm:text-xs ${totalTimerColor}`}>
             Total: {formatTime(timerSeconds)} / {formatTime(totalTarget)}
           </span>
         </div>

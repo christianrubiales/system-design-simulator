@@ -50,7 +50,7 @@ export function TradeoffCards() {
                         {card.optionA.name}
                       </p>
                       <div>
-                        <p className="text-[10px] font-medium uppercase tracking-wider text-emerald-500">
+                        <p className="text-[11px] font-medium uppercase tracking-wider text-emerald-500">
                           Pros
                         </p>
                         <ul className="mt-0.5 space-y-0.5">
@@ -62,7 +62,7 @@ export function TradeoffCards() {
                         </ul>
                       </div>
                       <div>
-                        <p className="text-[10px] font-medium uppercase tracking-wider text-rose-500">
+                        <p className="text-[11px] font-medium uppercase tracking-wider text-rose-500">
                           Cons
                         </p>
                         <ul className="mt-0.5 space-y-0.5">
@@ -81,7 +81,7 @@ export function TradeoffCards() {
                         {card.optionB.name}
                       </p>
                       <div>
-                        <p className="text-[10px] font-medium uppercase tracking-wider text-emerald-500">
+                        <p className="text-[11px] font-medium uppercase tracking-wider text-emerald-500">
                           Pros
                         </p>
                         <ul className="mt-0.5 space-y-0.5">
@@ -93,7 +93,7 @@ export function TradeoffCards() {
                         </ul>
                       </div>
                       <div>
-                        <p className="text-[10px] font-medium uppercase tracking-wider text-rose-500">
+                        <p className="text-[11px] font-medium uppercase tracking-wider text-rose-500">
                           Cons
                         </p>
                         <ul className="mt-0.5 space-y-0.5">
@@ -110,7 +110,7 @@ export function TradeoffCards() {
                   {/* When to choose */}
                   <div className="space-y-1.5 border-t border-zinc-700 pt-2">
                     <div>
-                      <p className="text-[10px] font-medium text-cyan-500">
+                      <p className="text-[11px] font-medium text-cyan-500">
                         Choose {card.optionA.name} when:
                       </p>
                       <p className="text-[11px] leading-relaxed text-zinc-400">
@@ -118,7 +118,7 @@ export function TradeoffCards() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-medium text-purple-500">
+                      <p className="text-[11px] font-medium text-purple-500">
                         Choose {card.optionB.name} when:
                       </p>
                       <p className="text-[11px] leading-relaxed text-zinc-400">

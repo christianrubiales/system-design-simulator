@@ -21,6 +21,8 @@ interface AppState {
   theme: Theme;
   leftSidebarOpen: boolean;
   rightPanelOpen: boolean;
+  /** Show per-node runtime detail (qps, utilization bar, health dot) on canvas nodes. */
+  nodeDetailsVisible: boolean;
   activeLeftTab: "components" | "problems" | "learn";
   activeRightTab: "properties" | "simulation" | "score" | "capacity" | "tradeoffs";
   toast: ToastData | null;
@@ -30,6 +32,8 @@ interface AppState {
   toggleTheme: () => void;
   toggleLeftSidebar: () => void;
   toggleRightPanel: () => void;
+  toggleNodeDetails: () => void;
+  setNodeDetailsVisible: (visible: boolean) => void;
   setLeftSidebarOpen: (open: boolean) => void;
   setActiveLeftTab: (tab: AppState["activeLeftTab"]) => void;
   setActiveRightTab: (tab: AppState["activeRightTab"]) => void;
@@ -46,8 +50,9 @@ export const useAppStore = create<AppState>()(
     (set) => ({
       selectedProblemId: "url-shortener",
       theme: "dark",
-      leftSidebarOpen: true,
+      leftSidebarOpen: false,
       rightPanelOpen: true,
+      nodeDetailsVisible: false,
       activeLeftTab: "components",
       activeRightTab: "properties",
       toast: null,
@@ -67,6 +72,9 @@ export const useAppStore = create<AppState>()(
         set((s) => ({ leftSidebarOpen: !s.leftSidebarOpen })),
       toggleRightPanel: () =>
         set((s) => ({ rightPanelOpen: !s.rightPanelOpen })),
+      toggleNodeDetails: () =>
+        set((s) => ({ nodeDetailsVisible: !s.nodeDetailsVisible })),
+      setNodeDetailsVisible: (visible) => set({ nodeDetailsVisible: visible }),
       setLeftSidebarOpen: (open) => set({ leftSidebarOpen: open }),
       setActiveLeftTab: (tab) => set({ activeLeftTab: tab }),
       setActiveRightTab: (tab) => set({ activeRightTab: tab }),
@@ -96,6 +104,7 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({
         selectedProblemId: state.selectedProblemId,
         theme: state.theme,
+        nodeDetailsVisible: state.nodeDetailsVisible,
       }),
       // Apply the persisted theme to <html> as soon as the store rehydrates.
       onRehydrateStorage: () => (state) => {

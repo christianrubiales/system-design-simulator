@@ -8,6 +8,7 @@ import { useCanvasStore } from "@/store/canvasStore";
 import { Server } from "lucide-react";
 import { ICON_MAP } from "@/lib/icons";
 import { useIsCoarsePointer } from "@/hooks/useBreakpoint";
+import { useAppStore } from "@/store/appStore";
 
 type ComponentNode = Node<ComponentNodeData, "component">;
 
@@ -45,6 +46,9 @@ function ComponentNodeInner({ id, data, selected }: NodeProps<ComponentNode>) {
   const inputRef = useRef<HTMLInputElement>(null);
   const updateNodeData = useCanvasStore((s) => s.updateNodeData);
   const isCoarse = useIsCoarsePointer();
+  // Off by default — the canvas stays quiet until the user asks for runtime
+  // numbers via the "Node Details" switch in the top bar.
+  const showDetails = useAppStore((s) => s.nodeDetailsVisible);
 
   useEffect(() => {
     if (editing && inputRef.current) {
@@ -90,10 +94,12 @@ function ComponentNodeInner({ id, data, selected }: NodeProps<ComponentNode>) {
       `}
     >
       {/* Status indicator dot */}
-      <div
-        className={`absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full ring-2 ring-zinc-900 ${statusDot}`}
-        style={{ animation: status !== 'idle' ? 'status-pulse 2s infinite' : 'none' }}
-      />
+      {showDetails && (
+        <div
+          className={`absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full ring-2 ring-zinc-900 ${statusDot}`}
+          style={{ animation: status !== 'idle' ? 'status-pulse 2s infinite' : 'none' }}
+        />
+      )}
 
       {/* Icon + Label row */}
       <div className="flex items-center gap-2">
@@ -127,19 +133,21 @@ function ComponentNodeInner({ id, data, selected }: NodeProps<ComponentNode>) {
       </div>
 
       {/* Stats */}
-      <span className="font-mono text-[9px] text-zinc-400">
-        {nodeData.maxQPS === Infinity ? '\u221e' : ((nodeData.maxQPS ?? 0)/1000).toFixed(0) + 'k'} qps
-      </span>
+      {showDetails && (
+        <span className="font-mono text-[10px] text-zinc-400">
+          {nodeData.maxQPS === Infinity ? '\u221e' : ((nodeData.maxQPS ?? 0)/1000).toFixed(0) + 'k'} qps
+        </span>
+      )}
 
       {/* Replicas badge */}
       {replicas > 1 && (
-        <span className="absolute -left-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-cyan-600 px-1 text-[8px] font-bold text-white">
+        <span className="absolute -left-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-cyan-600 px-1 text-[10px] font-bold text-white">
           ×{replicas}
         </span>
       )}
 
       {/* Utilization bar (shown during simulation) */}
-      {utilization > 0 && (
+      {showDetails && utilization > 0 && (
         <div className="mt-0.5 flex w-full items-center gap-1">
           <div className="h-1 flex-1 overflow-hidden rounded-full bg-zinc-800">
             <motion.div
@@ -151,7 +159,7 @@ function ComponentNodeInner({ id, data, selected }: NodeProps<ComponentNode>) {
               transition={{ duration: 0.3 }}
             />
           </div>
-          <span className={`font-mono text-[8px] ${
+          <span className={`font-mono text-[10px] ${
             utilization > 0.8 ? "text-rose-400" : utilization > 0.5 ? "text-amber-400" : "text-emerald-400"
           }`}>{(utilization * 100).toFixed(0)}%</span>
         </div>

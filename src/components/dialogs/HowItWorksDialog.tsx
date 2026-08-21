@@ -136,7 +136,7 @@ export function HowItWorksDialog({ open, onClose, onPickProblem, onPlayWalkthrou
             <Command className="mt-0.5 h-4 w-4 shrink-0 text-cyan-400" />
             <p className="text-xs leading-relaxed text-zinc-400">
               <span className="font-semibold text-zinc-200">Power tip:</span> press{" "}
-              <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 font-mono text-[10px] text-zinc-300">⌘K</kbd>{" "}
+              <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 font-mono text-[11px] text-zinc-300">⌘K</kbd>{" "}
               anywhere to search problems, add components, and run actions. You can also create your own components & problems, and everything saves to your browser automatically.
             </p>
           </div>

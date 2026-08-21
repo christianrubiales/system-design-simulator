@@ -96,13 +96,13 @@ function AnimatedEdgeInner({
             className="nodrag nopan flex items-center gap-1"
           >
             {label && (
-              <span className="rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] text-zinc-400 leading-none">
+              <span className="rounded bg-zinc-900 px-1.5 py-0.5 text-[11px] text-zinc-400 leading-none">
                 {label}
               </span>
             )}
             {badge && (
               <span
-                className={`rounded border px-1 py-0.5 text-[9px] font-medium leading-none ${badge.color}`}
+                className={`rounded border px-1 py-0.5 text-[10px] font-medium leading-none ${badge.color}`}
               >
                 {badge.text}
               </span>

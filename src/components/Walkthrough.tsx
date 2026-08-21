@@ -109,7 +109,7 @@ function SceneWire() {
         initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.2, duration: 0.4 }}
-        className="absolute left-1/2 top-[38%] -translate-x-1/2 rounded-full border border-cyan-500/30 bg-zinc-900 px-2 py-0.5 text-[10px] font-medium text-cyan-300"
+        className="absolute left-1/2 top-[38%] -translate-x-1/2 rounded-full border border-cyan-500/30 bg-zinc-900 px-2 py-0.5 text-[11px] font-medium text-cyan-300"
       >
         HTTP
       </motion.span>
@@ -179,13 +179,13 @@ function SceneScore() {
         </svg>
         <div className="absolute flex flex-col items-center">
           <span className="font-mono text-3xl font-bold text-zinc-50"><CountUp to={88} /></span>
-          <span className="text-[10px] text-zinc-400">/ 100</span>
+          <span className="text-[11px] text-zinc-400">/ 100</span>
         </div>
       </div>
       <div className="w-52 space-y-1.5">
         {["Scalability", "Availability", "Latency"].map((c, i) => (
           <div key={c} className="flex items-center gap-2">
-            <span className="w-20 text-[10px] text-zinc-400">{c}</span>
+            <span className="w-20 text-[11px] text-zinc-400">{c}</span>
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-800">
               <motion.div
                 className="h-full rounded-full bg-emerald-500"
@@ -215,7 +215,7 @@ function SceneInterview() {
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.12, duration: 0.35 }}
-            className={`flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-medium ${
+            className={`flex items-center gap-1.5 rounded-full px-2 py-1 text-[11px] font-medium ${
               i === 0 ? "bg-cyan-500/15 text-cyan-300 ring-1 ring-cyan-500/30" : "bg-zinc-800 text-zinc-500"
             }`}
           >
@@ -259,7 +259,7 @@ function SceneCommand() {
             >
               <Icon className={`h-4 w-4 ${i === 0 ? "text-cyan-400" : "text-zinc-500"}`} />
               <span className="flex-1 text-xs text-zinc-200">{r.label}</span>
-              <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-[9px] font-medium text-zinc-500">{r.tag}</span>
+              <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500">{r.tag}</span>
             </motion.div>
           );
         })}

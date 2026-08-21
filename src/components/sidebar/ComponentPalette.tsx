@@ -139,7 +139,7 @@ export function ComponentPalette({ onCreateCustomComponent, onComponentAdded }: 
           />
         </div>
         {query && (
-          <p className="mt-1.5 text-[10px] text-zinc-400">
+          <p className="mt-1.5 text-[11px] text-zinc-400">
             {totalMatches === 0
               ? "No matches"
               : `${totalMatches} component${totalMatches === 1 ? "" : "s"} match "${search}"`}
@@ -166,10 +166,10 @@ export function ComponentPalette({ onCreateCustomComponent, onComponentAdded }: 
           return (
             <div key={cat.key}>
               <div className="mb-2 flex items-center gap-2">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
                   {cat.label}
                 </p>
-                <span className="flex h-4 min-w-4 items-center justify-center rounded bg-zinc-800 px-1 text-[10px] font-medium tabular-nums text-zinc-500">
+                <span className="flex h-4 min-w-4 items-center justify-center rounded bg-zinc-800 px-1 text-[11px] font-medium tabular-nums text-zinc-500">
                   {items.length}
                 </span>
                 <div className="h-px flex-1 bg-zinc-800" />
@@ -200,7 +200,7 @@ export function ComponentPalette({ onCreateCustomComponent, onComponentAdded }: 
                             </div>
                             <span className="min-w-0 flex-1 truncate">{item.label}</span>
                             {isCustom && (
-                              <span className="shrink-0 rounded bg-cyan-500/15 px-1 text-[9px] font-semibold uppercase tracking-wider text-cyan-400">
+                              <span className="shrink-0 rounded bg-cyan-500/15 px-1 text-[10px] font-semibold uppercase tracking-wider text-cyan-400">
                                 Custom
                               </span>
                             )}

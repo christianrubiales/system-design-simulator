@@ -177,7 +177,7 @@ export function TradeoffLog() {
             <div className="mt-1.5">
               <Badge
                 variant="outline"
-                className={`h-4 px-1.5 text-[10px] font-medium ${getCategoryColor(entry.category)}`}
+                className={`h-4 px-1.5 text-[11px] font-medium ${getCategoryColor(entry.category)}`}
               >
                 {entry.category}
               </Badge>

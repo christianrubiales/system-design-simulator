@@ -30,7 +30,7 @@ export function InterviewPhasePanel() {
           <PhaseIcon icon={phase.icon} />
           <div>
             <p className="text-xs font-semibold text-zinc-200">{phase.name}</p>
-            <p className="text-[10px] text-zinc-400">{phase.description}</p>
+            <p className="text-[11px] text-zinc-400">{phase.description}</p>
           </div>
         </div>
       </div>
@@ -86,13 +86,13 @@ function PhaseIcon({ icon }: { icon: string }) {
 function GuideItem({ title, items }: { title: string; items: string[] }) {
   return (
     <div className="space-y-1.5">
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
         {title}
       </p>
       <div className="space-y-1">
         {items.map((item, i) => (
           <div key={i} className="flex items-start gap-2 rounded-md bg-zinc-800 px-2.5 py-2">
-            <span className="mt-0.5 text-[10px] text-zinc-600">{i + 1}.</span>
+            <span className="mt-0.5 text-[11px] text-zinc-600">{i + 1}.</span>
             <span className="text-xs leading-relaxed text-zinc-400">{item}</span>
           </div>
         ))}
@@ -110,7 +110,7 @@ function RequirementsGuide({ problem }: GuideProps) {
     <>
       {problem && (
         <div className="space-y-1.5">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
             Problem
           </p>
           <div className="rounded-md bg-zinc-800 px-2.5 py-2">
@@ -144,7 +144,7 @@ function EstimationGuide({ problem }: GuideProps) {
     <>
       {problem && (
         <div className="space-y-1.5">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
             Given numbers
           </p>
           <div className="space-y-1">
@@ -192,7 +192,7 @@ function APIDesignGuide({ problem: _problem }: GuideProps) {
         ]}
       />
       <div className="rounded-md border border-zinc-700 bg-zinc-800 px-2.5 py-2">
-        <p className="text-[10px] font-semibold text-zinc-500">TIP</p>
+        <p className="text-[11px] font-semibold text-zinc-500">TIP</p>
         <p className="mt-0.5 text-xs text-zinc-400">
           Use the text notes on the canvas to draft your API endpoints.
           Click &quot;Add Note&quot; in the top bar.
@@ -216,7 +216,7 @@ function DataModelGuide({ problem: _problem }: GuideProps) {
         ]}
       />
       <div className="rounded-md border border-zinc-700 bg-zinc-800 px-2.5 py-2">
-        <p className="text-[10px] font-semibold text-zinc-500">TIP</p>
+        <p className="text-[11px] font-semibold text-zinc-500">TIP</p>
         <p className="mt-0.5 text-xs text-zinc-400">
           Use text notes on the canvas to sketch your schema.
           Focus on the access patterns, not just the structure.
@@ -242,7 +242,7 @@ function DeepDiveGuide({ problem }: GuideProps) {
       />
       {problem && problem.hints.length > 0 && (
         <div className="space-y-1.5">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
             Hints for {problem.title}
           </p>
           {problem.hints.map((hint, i) => (

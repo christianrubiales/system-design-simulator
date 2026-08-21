@@ -36,7 +36,7 @@ export function CanvasTabBar() {
         >
           <span className="truncate max-w-[140px]">{tab.label}</span>
           {tab.readOnly && (
-            <span className="rounded bg-cyan-500/10 px-1 py-0.5 text-[8px] font-medium text-cyan-400">
+            <span className="rounded bg-cyan-500/10 px-1 py-0.5 text-[10px] font-medium text-cyan-400">
               REF
             </span>
           )}

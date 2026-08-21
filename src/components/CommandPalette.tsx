@@ -252,7 +252,7 @@ export function CommandPalette({ open, onClose, actions }: CommandPaletteProps) 
             className="h-12 w-full bg-transparent text-[15px] text-zinc-100 placeholder:text-zinc-500"
             aria-label="Search commands"
           />
-          <kbd className="hidden shrink-0 rounded border border-zinc-700/70 bg-zinc-800/80 px-1.5 py-0.5 font-mono text-[10px] text-zinc-500 sm:block">esc</kbd>
+          <kbd className="hidden shrink-0 rounded border border-zinc-700/70 bg-zinc-800/80 px-1.5 py-0.5 font-mono text-[11px] text-zinc-500 sm:block">esc</kbd>
         </div>
 
         <div ref={listRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1.5">
@@ -268,7 +268,7 @@ export function CommandPalette({ open, onClose, actions }: CommandPaletteProps) 
               return (
                 <div key={item.id}>
                   {showHeader && (
-                    <div className="px-2.5 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+                    <div className="px-2.5 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
                       {item.group}
                     </div>
                   )}
@@ -283,12 +283,12 @@ export function CommandPalette({ open, onClose, actions }: CommandPaletteProps) 
                     <Icon className={`h-4 w-4 shrink-0 ${idx === active ? "text-cyan-400" : "text-zinc-500"}`} />
                     <span className="flex-1 truncate text-sm">{item.label}</span>
                     {!grouped && (
-                      <span className="shrink-0 rounded bg-zinc-800 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-zinc-500">
+                      <span className="shrink-0 rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-500">
                         {item.group}
                       </span>
                     )}
                     {item.hint && (
-                      <span className="shrink-0 font-mono text-[10px] text-zinc-500">{item.hint}</span>
+                      <span className="shrink-0 font-mono text-[11px] text-zinc-500">{item.hint}</span>
                     )}
                     {idx === active && <CornerDownLeft className="h-3 w-3 shrink-0 text-zinc-500" />}
                   </button>

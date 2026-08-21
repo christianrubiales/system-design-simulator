@@ -64,9 +64,9 @@ export function InterviewStartDialog({ open, onClose }: InterviewStartDialogProp
               </div>
               <div className="flex-1">
                 <p className="text-xs font-medium text-zinc-200">{phase.name}</p>
-                <p className="text-[10px] text-zinc-400">{phase.description}</p>
+                <p className="text-[11px] text-zinc-400">{phase.description}</p>
               </div>
-              <span className="font-mono text-[10px] text-zinc-400">
+              <span className="font-mono text-[11px] text-zinc-400">
                 {phase.targetMinutes} min
               </span>
             </div>

@@ -26,6 +26,7 @@ import {
   Loader2,
   Sun,
   Moon,
+  Gauge,
 } from "lucide-react";
 import { useAppStore } from "@/store/appStore";
 import { useCanvasStore } from "@/store/canvasStore";
@@ -73,6 +74,8 @@ export function TopBar({ onSimulate, onScore, onClearCanvas, onSave, onLoad, onS
   const setSelectedProblem = useAppStore((s) => s.setSelectedProblem);
   const theme = useAppStore((s) => s.theme);
   const toggleTheme = useAppStore((s) => s.toggleTheme);
+  const nodeDetailsVisible = useAppStore((s) => s.nodeDetailsVisible);
+  const toggleNodeDetails = useAppStore((s) => s.toggleNodeDetails);
 
   const customProblems = useCustomProblemsStore((s) => s.problems);
   const currentProblem =
@@ -224,7 +227,7 @@ export function TopBar({ onSimulate, onScore, onClearCanvas, onSave, onLoad, onS
                     }`}
                   >
                     <span className="flex-1 truncate">{problem.title}</span>
-                    <span className="shrink-0 rounded bg-violet-500/10 px-1 py-0.5 text-[9px] font-medium text-violet-400">
+                    <span className="shrink-0 rounded bg-violet-500/10 px-1 py-0.5 text-[10px] font-medium text-violet-400">
                       Custom
                     </span>
                   </button>
@@ -259,7 +262,7 @@ export function TopBar({ onSimulate, onScore, onClearCanvas, onSave, onLoad, onS
         {!selectedProblemId.startsWith("custom-") && (
           <button
             onClick={loadReference}
-            className="hidden shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[10px] text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-300 md:flex"
+            className="hidden shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-300 md:flex"
             title="Load reference solution"
           >
             <Download className="h-3 w-3" />
@@ -271,7 +274,7 @@ export function TopBar({ onSimulate, onScore, onClearCanvas, onSave, onLoad, onS
 
         <button
           onClick={addTextNote}
-          className="hidden shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[10px] text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200 md:flex"
+          className="hidden shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200 md:flex"
           title="Add text note to canvas"
         >
           <StickyNote className="h-3 w-3" />
@@ -303,7 +306,7 @@ export function TopBar({ onSimulate, onScore, onClearCanvas, onSave, onLoad, onS
 
         <button
           onClick={onStartInterview}
-          className="hidden shrink-0 items-center gap-1 rounded-md bg-zinc-800 px-2 py-1 text-[10px] font-medium text-zinc-300 transition-colors hover:bg-zinc-700 hover:text-zinc-100 md:flex"
+          className="hidden shrink-0 items-center gap-1 rounded-md bg-zinc-800 px-2 py-1 text-[11px] font-medium text-zinc-300 transition-colors hover:bg-zinc-700 hover:text-zinc-100 md:flex"
           title="Start a guided interview practice"
         >
           <GraduationCap className="h-3.5 w-3.5" />
@@ -347,6 +350,30 @@ export function TopBar({ onSimulate, onScore, onClearCanvas, onSave, onLoad, onS
                 >
                   <GraduationCap className="h-3.5 w-3.5 text-zinc-500" />
                   Practice interview
+                </button>
+
+                <div className="my-1 h-px bg-zinc-800" />
+
+                {/* View */}
+                <button
+                  onClick={toggleNodeDetails}
+                  role="switch"
+                  aria-checked={nodeDetailsVisible}
+                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs text-zinc-300 transition-colors hover:bg-zinc-800"
+                >
+                  <Gauge className="h-3.5 w-3.5 text-zinc-500" />
+                  Node details
+                  <span
+                    className={`relative ml-auto h-3.5 w-6 shrink-0 rounded-full transition-colors ${
+                      nodeDetailsVisible ? "bg-cyan-500" : "bg-zinc-700"
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-0.5 h-2.5 w-2.5 rounded-full bg-white transition-[left] duration-150 ${
+                        nodeDetailsVisible ? "left-[13px]" : "left-0.5"
+                      }`}
+                    />
+                  </span>
                 </button>
 
                 <div className="my-1 h-px bg-zinc-800" />
@@ -421,6 +448,30 @@ export function TopBar({ onSimulate, onScore, onClearCanvas, onSave, onLoad, onS
 
       {/* Right section */}
       <div className="flex items-center gap-1 md:gap-2">
+        {/* Node details switch — hides per-node qps / utilization / health dot */}
+        <button
+          role="switch"
+          aria-checked={nodeDetailsVisible}
+          onClick={toggleNodeDetails}
+          className="hidden h-7 items-center gap-1.5 rounded-md px-2 text-[11px] text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200 md:flex"
+          title="Show QPS, utilization and health indicators on canvas nodes"
+        >
+          <span
+            className={`relative h-3.5 w-6 shrink-0 rounded-full transition-colors ${
+              nodeDetailsVisible ? "bg-cyan-500" : "bg-zinc-700"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 h-2.5 w-2.5 rounded-full bg-white transition-[left] duration-150 ${
+                nodeDetailsVisible ? "left-[13px]" : "left-0.5"
+              }`}
+            />
+          </span>
+          <span className="hidden lg:inline">Node Details</span>
+        </button>
+
+        <div className="hidden h-4 w-px bg-zinc-800 md:block" />
+
         <button
           onClick={onSave}
           className="hidden h-7 items-center gap-1 rounded-md px-2 text-xs text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200 md:flex"
@@ -465,7 +516,7 @@ export function TopBar({ onSimulate, onScore, onClearCanvas, onSave, onLoad, onS
                 >
                   <ImageIcon className="h-3.5 w-3.5" />
                   Export as PNG
-                  <kbd className="ml-auto rounded border border-zinc-700 bg-zinc-800 px-1 py-0.5 font-mono text-[9px] text-zinc-500">
+                  <kbd className="ml-auto rounded border border-zinc-700 bg-zinc-800 px-1 py-0.5 font-mono text-[10px] text-zinc-500">
                     {"\u2318"}E
                   </kbd>
                 </button>

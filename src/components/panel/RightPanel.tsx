@@ -612,7 +612,7 @@ function LearnSection({ componentId, label }: { componentId: string; label: stri
                               key={i}
                               className={`flex items-start gap-2 rounded-md ${section.bgAccent} px-2 py-1.5`}
                             >
-                              <span className={`mt-0.5 text-[10px] font-bold ${section.accent}`}>
+                              <span className={`mt-0.5 text-[11px] font-bold ${section.accent}`}>
                                 TIP
                               </span>
                               <span className="text-[11px] leading-relaxed text-zinc-300">

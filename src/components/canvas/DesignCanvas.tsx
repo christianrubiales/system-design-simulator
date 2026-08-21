@@ -17,6 +17,7 @@ import { edgeTypes } from "./edges/edgeTypes";
 import { useCanvasStore, type ComponentNodeData } from "@/store/canvasStore";
 import { usePenStore } from "@/store/penStore";
 import { useAppStore } from "@/store/appStore";
+import { useHasHydrated } from "@/store/hydration";
 import { getComponentById } from "@/data/components";
 import { BookOpen, GraduationCap, Layers, Lock, MousePointer2, Sparkles, HelpCircle } from "lucide-react";
 import { motion } from "framer-motion";
@@ -70,7 +71,7 @@ export function DesignCanvas({ onPickProblem, onLoadReference, onStartInterview,
   useEffect(() => {
     if (initialTabRef.current) {
       initialTabRef.current = false;
-      return; // initial mount already handled by the `fitView` prop
+      return; // initial mount is handled by the post-hydration fit below
     }
     // Wait one frame so the new tab's nodes are mounted before fitting
     const raf = requestAnimationFrame(() => {
@@ -78,6 +79,23 @@ export function DesignCanvas({ onPickProblem, onLoadReference, onStartInterview,
     });
     return () => cancelAnimationFrame(raf);
   }, [activeTabId, fitView]);
+
+  // Fit the restored design on load. The `fitView` prop only fires on init,
+  // and stores rehydrate *after* mount (skipHydration), so at that point the
+  // canvas is still empty — without this the persisted design comes back at
+  // whatever zoom React Flow defaulted to. Runs once, and only for the nodes
+  // that came from localStorage (later user-added nodes must not re-fit).
+  const hasHydrated = useHasHydrated();
+  useEffect(() => {
+    // Keyed on `hasHydrated` alone so it fires exactly once: by the time it
+    // flips true the restored nodes are already in the store, and a later
+    // 0 -> 1 node change (the user's first drop) must not re-fit.
+    if (!hasHydrated || useCanvasStore.getState().nodes.length === 0) return;
+    const raf = requestAnimationFrame(() => {
+      fitView({ padding: 0.2 });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [hasHydrated, fitView]);
 
   // Listen for text node edits and persist them to the store
   useEffect(() => {
@@ -300,7 +318,7 @@ export function DesignCanvas({ onPickProblem, onLoadReference, onStartInterview,
 
             <motion.div variants={emptyItem} className="hidden flex-wrap items-center justify-center gap-3 text-[11px] text-zinc-500 md:flex">
               <span className="flex items-center gap-1.5">
-                <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 font-mono text-[10px]">⌘K</kbd>
+                <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 font-mono text-[11px]">⌘K</kbd>
                 command palette
               </span>
               <span className="text-zinc-700">·</span>
@@ -310,12 +328,12 @@ export function DesignCanvas({ onPickProblem, onLoadReference, onStartInterview,
               </span>
               <span className="text-zinc-700">·</span>
               <span className="flex items-center gap-1">
-                <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 font-mono text-[10px]">⌘E</kbd>
+                <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 font-mono text-[11px]">⌘E</kbd>
                 export
               </span>
               <span className="text-zinc-700">·</span>
               <span className="flex items-center gap-1">
-                <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 font-mono text-[10px]">⌘↵</kbd>
+                <kbd className="rounded border border-zinc-700 bg-zinc-800 px-1.5 py-0.5 font-mono text-[11px]">⌘↵</kbd>
                 simulate
               </span>
             </motion.div>

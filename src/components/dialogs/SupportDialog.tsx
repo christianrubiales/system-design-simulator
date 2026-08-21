@@ -92,7 +92,7 @@ export function SupportDialog({ open, onClose }: SupportDialogProps) {
                 href={upiIntent(q.amount)}
                 className="group flex flex-col items-center gap-0.5 rounded-xl border border-zinc-800 bg-zinc-900 px-2 py-2.5 transition-all hover:-translate-y-0.5 hover:border-amber-500/40 hover:bg-zinc-900/80"
               >
-                <span className="text-[10px] font-medium uppercase tracking-wider text-zinc-500 group-hover:text-amber-400">
+                <span className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 group-hover:text-amber-400">
                   {q.label}
                 </span>
                 <span className="font-mono text-sm font-semibold text-zinc-200">
@@ -104,7 +104,7 @@ export function SupportDialog({ open, onClose }: SupportDialogProps) {
 
           {/* QR */}
           <div className="mt-4 flex flex-col items-center gap-2">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+            <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
               Or scan with any UPI app
             </p>
             <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-100 p-1.5 shadow-lg">
@@ -132,7 +132,7 @@ export function SupportDialog({ open, onClose }: SupportDialogProps) {
             )}
           </button>
 
-          <p className="mt-3 text-[10px] text-zinc-500">
+          <p className="mt-3 text-[11px] text-zinc-500">
             Pay what feels right · No pressure · No ads
           </p>
 
