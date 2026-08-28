@@ -1,6 +1,8 @@
 import type { Node, Edge } from "@xyflow/react";
 import type { ComponentNodeData } from "@/store/canvasStore";
-import type { NodeMetrics, NodeStatus, SimulationResult } from "@/types/simulation";
+import type { NodeMetrics, NodeStatus, SimulationResult, Traffic } from "@/types/simulation";
+import { SERVICE_CONFIG, defaultConfig } from "@/data/serviceConfig";
+import { resolveComponentId } from "@/data/conceptMap";
 import {
   UTILIZATION_WARNING,
   UTILIZATION_CRITICAL,
@@ -9,12 +11,69 @@ import {
 } from "./constants";
 
 /** Component IDs that split (load-balance) traffic across children. */
-const LOAD_BALANCING_COMPONENTS = new Set(["load-balancer", "api-gateway"]);
+const LOAD_BALANCING_COMPONENTS = new Set([
+  "load-balancer",
+  "api-gateway",
+  "alb",
+  "nlb",
+]);
+
+/** Categories a cache can plausibly sit in front of. */
+const DATASTORE_CATEGORIES = new Set(["database", "storage", "analytics"]);
+
+const ZERO: Traffic = { reads: 0, writes: 0 };
+const total = (t: Traffic): number => t.reads + t.writes;
+const scale = (t: Traffic, f: number): Traffic => ({ reads: t.reads * f, writes: t.writes * f });
+const add = (a: Traffic, b: Traffic): Traffic => ({
+  reads: a.reads + b.reads,
+  writes: a.writes + b.writes,
+});
+
+/**
+ * Fraction of reads a caching node serves itself, 0 when it is not a cache.
+ *
+ * Read from the node's config so the panel's hit-rate slider drives the
+ * simulation directly. This is the single most important capacity lever in a
+ * read-heavy design, and the one candidates most often hand-wave.
+ */
+function cacheHitRate(node: Node<ComponentNodeData>): number {
+  const id = resolveComponentId(node.data.componentId);
+  const spec = SERVICE_CONFIG[id];
+  if (!spec?.params.some((p) => p.id === "cacheHitRate")) return 0;
+  const configured = node.data.config?.cacheHitRate;
+  const pct = typeof configured === "number" ? configured : Number(defaultConfig(id).cacheHitRate ?? 0);
+  return Math.min(1, Math.max(0, pct / 100));
+}
+
+/**
+ * Extra read capacity from read replicas. Replicas serve reads only — writes
+ * still go to the single primary, which is the point interviewers probe.
+ * Returns 1 when the service has no replica parameter, so nothing changes.
+ */
+function readCapacityMultiplier(node: Node<ComponentNodeData>): number {
+  const id = resolveComponentId(node.data.componentId);
+  const spec = SERVICE_CONFIG[id];
+  if (!spec?.params.some((p) => p.id === "readReplicas")) return 1;
+  const configured = node.data.config?.readReplicas;
+  const replicas =
+    typeof configured === "number" ? configured : Number(defaultConfig(id).readReplicas ?? 0);
+  return 1 + Math.max(0, replicas);
+}
 
 function getStatus(utilization: number): NodeStatus {
   if (utilization > UTILIZATION_CRITICAL) return "critical";
   if (utilization > UTILIZATION_WARNING) return "warning";
   return "healthy";
+}
+
+/**
+ * Tail latency. Queueing delay is what separates p99 from p50, so the gap
+ * widens with utilization rather than being a fixed multiple — a node at 20%
+ * has a tight distribution, one at 95% has a long tail.
+ */
+function computeP99(p50: number, utilization: number): number {
+  const u = Math.min(Math.max(utilization, 0), 1);
+  return p50 * (2 + 8 * u * u);
 }
 
 function computeLatency(baseLatency: number, utilization: number): number {
@@ -38,7 +97,9 @@ function sanitizeReplicas(value: unknown): number {
 export function runSimulation(
   nodes: Node<ComponentNodeData>[],
   edges: Edge[],
-  requestsPerSec: number
+  requestsPerSec: number,
+  /** Fraction of offered load that is reads, 0..1. Seeded from the problem. */
+  readRatio = 0.9
 ): SimulationResult {
   const warnings: string[] = [];
   const nodeMetrics = new Map<string, NodeMetrics>();
@@ -95,57 +156,134 @@ export function runSimulation(
       (!hasEdges || (adjacency.get(n.id)?.length ?? 0) > 0)
   );
 
-  // Initialize incoming QPS for entry nodes
-  const incomingQPS = new Map<string, number>();
+  // Initialize incoming traffic for entry nodes, split by the read ratio.
+  const incomingQPS = new Map<string, Traffic>();
   const qpsPerEntry = entryNodes.length > 0 ? requestsPerSec / entryNodes.length : 0;
+  const ratio = Math.min(1, Math.max(0, readRatio));
   for (const entry of entryNodes) {
-    incomingQPS.set(entry.id, qpsPerEntry);
+    incomingQPS.set(entry.id, {
+      reads: qpsPerEntry * ratio,
+      writes: qpsPerEntry * (1 - ratio),
+    });
   }
 
   const bottleneckNodes: string[] = [];
   const deliveredQPS = new Map<string, number>();
+  const absorbed = new Map<string, number>();
   const processed = new Set<string>();
 
+  /**
+   * How a node's output is shared among its children.
+   *
+   * Load balancers divide traffic. Otherwise every child receives the full
+   * flow (a request typically touches the cache AND the database), with one
+   * exception: when a node fans out to BOTH a cache and a datastore, reads are
+   * split by the cache's hit rate — the cache serves its share and only the
+   * misses reach the store. Writes never go to a cache.
+   *
+   * That fan-out case is the important one: in practice a cache is drawn as a
+   * sibling of the database under the app tier, not in front of it, so
+   * absorbing at the cache node alone would have no downstream effect at all.
+   */
+  const distribute = (nodeId: string, output: Traffic): Map<string, Traffic> => {
+    const result = new Map<string, Traffic>();
+    const children = adjacency.get(nodeId) ?? [];
+    if (children.length === 0) return result;
+
+    if (LOAD_BALANCING_COMPONENTS.has(nodeMap.get(nodeId)!.data.componentId)) {
+      const share = scale(output, 1 / children.length);
+      for (const childId of children) result.set(childId, share);
+      return result;
+    }
+
+    const caches = children.filter((id) => {
+      const child = nodeMap.get(id);
+      return child ? cacheHitRate(child) > 0 : false;
+    });
+    const stores = children.filter((id) => {
+      const child = nodeMap.get(id);
+      return child ? DATASTORE_CATEGORIES.has(String(child.data.category)) : false;
+    });
+    const cacheSet = new Set(caches);
+    const storeSet = new Set(stores.filter((id) => !cacheSet.has(id)));
+
+    // Only meaningful when the cache and its backing store are siblings.
+    const hit =
+      caches.length > 0 && storeSet.size > 0
+        ? cacheHitRate(nodeMap.get(caches[0])!)
+        : 0;
+
+    for (const childId of children) {
+      if (hit > 0 && cacheSet.has(childId)) {
+        result.set(childId, { reads: output.reads * hit, writes: 0 });
+      } else if (hit > 0 && storeSet.has(childId)) {
+        result.set(childId, { reads: output.reads * (1 - hit), writes: output.writes });
+      } else {
+        result.set(childId, output);
+      }
+    }
+    return result;
+  };
+
   // Compute metrics for a node from its accumulated incoming QPS; returns delivered QPS.
-  const processNode = (nodeId: string): number => {
+  const processNode = (nodeId: string): Traffic => {
     const node = nodeMap.get(nodeId)!;
     const data = node.data;
-    const incoming = incomingQPS.get(nodeId) ?? 0;
+    const incoming = incomingQPS.get(nodeId) ?? ZERO;
+    const incomingTotal = total(incoming);
     const effectiveQPS = capacity.get(nodeId) ?? 0;
-    // A node with no usable capacity that still receives traffic is fully
-    // saturated (it black-holes everything downstream) — not "healthy".
+
+    // Read replicas add read capacity only — writes still go to the single
+    // primary. With no replica parameter this multiplier is 1, so utilization
+    // reduces exactly to (reads + writes) / capacity as before.
+    const readCap = effectiveQPS * readCapacityMultiplier(node);
     const utilization =
-      effectiveQPS <= 0 ? (incoming > 0 ? 2 : 0) : incoming / effectiveQPS;
+      effectiveQPS <= 0
+        ? incomingTotal > 0
+          ? 2
+          : 0
+        : (readCap > 0 ? incoming.reads / readCap : 0) + incoming.writes / effectiveQPS;
+
     const latency = computeLatency(data.latencyMs, utilization);
     const status = getStatus(utilization);
     const isBottleneck = utilization > UTILIZATION_CRITICAL;
 
     if (isBottleneck) bottleneckNodes.push(nodeId);
 
-    const delivered = Math.min(incoming, effectiveQPS);
-    deliveredQPS.set(nodeId, delivered);
+    // Over capacity, both channels are shed proportionally.
+    const throttle = utilization > 1 ? 1 / utilization : 1;
+    const served = scale(incoming, throttle);
+
+    // A cache with downstream children serves its share and passes the misses
+    // on (CloudFront in front of S3). For a leaf cache this is bookkeeping only.
+    const hit = cacheHitRate(node);
+    const absorbedReads = served.reads * hit;
+    const output: Traffic = { reads: served.reads - absorbedReads, writes: served.writes };
+
+    deliveredQPS.set(nodeId, total(served));
+    absorbed.set(nodeId, absorbedReads);
 
     nodeMetrics.set(nodeId, {
       nodeId,
-      incomingQPS: incoming,
+      incomingQPS: incomingTotal,
+      incomingReads: incoming.reads,
+      incomingWrites: incoming.writes,
+      absorbedReads,
       effectiveQPS,
       utilization: Math.min(utilization, 2), // cap at 200% for display
       latencyMs: latency,
+      latencyP99: computeP99(latency, utilization),
       status,
       isBottleneck,
     });
-    return delivered;
+    return output;
   };
 
-  // Push a node's output QPS to its (not yet processed) children.
-  const propagateToUnprocessedChildren = (nodeId: string, output: number) => {
-    const children = adjacency.get(nodeId) ?? [];
-    if (children.length === 0) return;
-    const isSplitter = LOAD_BALANCING_COMPONENTS.has(nodeMap.get(nodeId)!.data.componentId);
-    const qpsToChild = isSplitter ? output / children.length : output;
-    for (const childId of children) {
+  // Push a node's output traffic to its (not yet processed) children.
+  const propagateToUnprocessedChildren = (nodeId: string, output: Traffic) => {
+    for (const [childId, share] of distribute(nodeId, output)) {
       if (processed.has(childId)) continue;
-      incomingQPS.set(childId, (incomingQPS.get(childId) ?? 0) + qpsToChild);
+      incomingQPS.set(childId, add(incomingQPS.get(childId) ?? ZERO, share));
     }
   };
 
@@ -162,13 +300,14 @@ export function runSimulation(
 
     const output = processNode(nodeId);
 
-    // Propagate to children: load-balancers split traffic, everything else fans out
-    const children = adjacency.get(nodeId) ?? [];
-    const isSplitter = LOAD_BALANCING_COMPONENTS.has(nodeMap.get(nodeId)!.data.componentId);
-    const qpsToChild = isSplitter && children.length > 0 ? output / children.length : output;
-
-    for (const childId of children) {
-      incomingQPS.set(childId, (incomingQPS.get(childId) ?? 0) + qpsToChild);
+    // Propagate to children per the distribution policy (splitting, cache
+    // routing, or plain fan-out).
+    const shares = distribute(nodeId, output);
+    for (const childId of adjacency.get(nodeId) ?? []) {
+      incomingQPS.set(
+        childId,
+        add(incomingQPS.get(childId) ?? ZERO, shares.get(childId) ?? ZERO),
+      );
 
       // Decrement in-degree; enqueue when all predecessors processed
       const newDeg = (remaining.get(childId) ?? 1) - 1;
@@ -238,17 +377,13 @@ export function runSimulation(
     // output one step onward (around the cycle and out of it), so nodes
     // downstream of the cycle aren't black-holed.
     const cycleSet = new Set(cycleIds);
-    const cycleQueue: string[] = cycleIds.filter((id) => (incomingQPS.get(id) ?? 0) > 0);
+    const cycleQueue: string[] = cycleIds.filter((id) => total(incomingQPS.get(id) ?? ZERO) > 0);
     const processCycleMember = (nodeId: string) => {
       processed.add(nodeId);
       const output = processNode(nodeId);
-      const children = adjacency.get(nodeId) ?? [];
-      if (children.length === 0) return;
-      const isSplitter = LOAD_BALANCING_COMPONENTS.has(nodeMap.get(nodeId)!.data.componentId);
-      const qpsToChild = isSplitter ? output / children.length : output;
-      for (const childId of children) {
+      for (const [childId, share] of distribute(nodeId, output)) {
         if (processed.has(childId)) continue;
-        incomingQPS.set(childId, (incomingQPS.get(childId) ?? 0) + qpsToChild);
+        incomingQPS.set(childId, add(incomingQPS.get(childId) ?? ZERO, share));
         if (cycleSet.has(childId)) cycleQueue.push(childId);
       }
     };
@@ -300,9 +435,13 @@ export function runSimulation(
       nodeMetrics.set(node.id, {
         nodeId: node.id,
         incomingQPS: 0,
+        incomingReads: 0,
+        incomingWrites: 0,
+        absorbedReads: 0,
         effectiveQPS: capacity.get(node.id) ?? 0,
         utilization: 0,
         latencyMs: node.data.latencyMs, // base latency, not 0
+        latencyP99: node.data.latencyMs,
         status: "idle",
         isBottleneck: false,
       });

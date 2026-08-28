@@ -21,6 +21,9 @@ const defaultConfig: SimulationConfig = {
   requestsPerSec: 10000,
   durationSec: 10,
   rampUp: true,
+  // Read-heavy by default; overridden from the selected problem's
+  // readsPerSec / writesPerSec when one is chosen.
+  readRatio: 0.9,
 };
 
 export const useSimulationStore = create<SimulationState>((set) => ({
