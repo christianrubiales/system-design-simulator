@@ -357,6 +357,29 @@ export function TopBar({ onSimulate, onScore, onClearCanvas, onSave, onLoad, onS
 
                 <div className="my-1 h-px bg-zinc-800" />
 
+                {/* Region — the desktop selector is hidden below md, so without
+                    this the availability warnings and cost multiplier are
+                    unreachable on a phone. */}
+                <div className="px-3 py-2.5">
+                  <label htmlFor="mobile-region" className="mb-1 block text-[11px] text-zinc-500">
+                    Region
+                  </label>
+                  <select
+                    id="mobile-region"
+                    value={region}
+                    onChange={(e) => setRegion(e.target.value)}
+                    className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1.5 text-xs text-zinc-200"
+                  >
+                    {AWS_REGIONS.map((r) => (
+                      <option key={r.code} value={r.code}>
+                        {r.code} — {r.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="my-1 h-px bg-zinc-800" />
+
                 {/* View */}
                 <button
                   onClick={toggleNodeDetails}
@@ -591,12 +614,13 @@ export function TopBar({ onSimulate, onScore, onClearCanvas, onSave, onLoad, onS
           <span>Buy me a coffee</span>
         </button>
 
-        {/* Deployment region — drives availability warnings only; simulation,
-            scoring, and cost are unaffected. */}
+        {/* Deployment region — drives availability warnings and scales the cost
+            estimate. Simulation and scoring are unaffected. Mirrored in the
+            mobile overflow menu, since this control is hidden below md. */}
         <select
           value={region}
           onChange={(e) => setRegion(e.target.value)}
-          className="hidden h-7 rounded-md border border-zinc-700 bg-zinc-800 px-2 text-xs text-zinc-300 transition-colors hover:border-zinc-600 hover:text-zinc-100 lg:block"
+          className="hidden h-7 max-w-[10rem] rounded-md border border-zinc-700 bg-zinc-800 px-2 text-xs text-zinc-300 transition-colors hover:border-zinc-600 hover:text-zinc-100 md:block"
           title="Deployment region — flags services unavailable there"
           aria-label="Deployment region"
         >
