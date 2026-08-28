@@ -7,7 +7,8 @@
   "description": "SystemForge — an open-source system design interview simulator: build architectures, simulate traffic, and get scored.",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "check:catalog": "tsx scripts/check-catalog.ts",
+    "build": "npm run check:catalog && next build",
     "start": "next start",
     "lint": "eslint"
   },
@@ -36,6 +37,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
     "tailwindcss": "^4",
+    "tsx": "^4.23.12",
     "typescript": "^5"
   }
 }
