@@ -465,6 +465,16 @@ export const SERVICE_CONFIG: Record<string, ServiceConfigSpec> = {
   cloudfront: {
     params: [
       {
+        id: "payloadKB",
+        kind: "number",
+        label: "Avg response size",
+        unit: "KB",
+        default: 10,
+        min: 1,
+        max: 100000,
+        help: "Drives the data-transfer line on the bill, which is often the largest. This is YOUR assumption — set it to your real average response size.",
+      },
+      {
         id: "cacheHitRate",
         kind: "number",
         label: "Cache hit rate",
@@ -481,7 +491,21 @@ export const SERVICE_CONFIG: Record<string, ServiceConfigSpec> = {
   nlb: fixed(1000000, "Handles millions of requests per second at layer 4."),
   route53: fixed(1000000, "Designed for effectively unlimited authoritative DNS query volume."),
   vpc: fixed(1000000, "A network boundary, not a request-processing hop."),
-  "nat-gateway": fixed(55000, "Up to 55,000 simultaneous connections per unique destination."),
+  "nat-gateway": {
+    params: [
+      {
+        id: "payloadKB",
+        kind: "number",
+        label: "Avg response size",
+        unit: "KB",
+        default: 10,
+        min: 1,
+        max: 100000,
+        help: "Every GB leaving a private subnet through NAT is billed twice over: hourly plus per-GB processing. A surprisingly common source of bill shock.",
+      },
+    ],
+    throughput: { per: "fixed", qps: 55000, note: "Up to 55,000 simultaneous connections per unique destination." },
+  },
   privatelink: fixed(100000, "Throughput follows the backing VPC endpoint."),
   "global-accelerator": fixed(1000000, "Throughput follows the backing endpoints."),
 

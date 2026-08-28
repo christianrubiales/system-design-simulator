@@ -19,6 +19,7 @@ import { ScoreReport } from "./ScoreReport";
 import { CapacityCalculator } from "./CapacityCalculator";
 import { TradeoffLog } from "./TradeoffLog";
 import { TradeoffCards } from "./TradeoffCards";
+import { CostReport } from "./CostReport";
 import { ConfigPanel } from "./ConfigPanel";
 import { useInterviewStore } from "@/store/interviewStore";
 import { InterviewPhasePanel } from "@/components/interview/InterviewPhasePanel";
@@ -81,6 +82,7 @@ function RightTabs({ onSimulate }: { onSimulate: () => void }) {
           <TabsTrigger value="simulation" className="h-7 px-2 text-[11px] data-[state=active]:bg-zinc-700 data-[state=active]:text-zinc-100">Simulate</TabsTrigger>
           <TabsTrigger value="score" className="h-7 px-2 text-[11px] data-[state=active]:bg-zinc-700 data-[state=active]:text-zinc-100">Score</TabsTrigger>
           <TabsTrigger value="capacity" className="h-7 px-2 text-[11px] data-[state=active]:bg-zinc-700 data-[state=active]:text-zinc-100">Capacity</TabsTrigger>
+          <TabsTrigger value="cost" className="h-7 px-2 text-[11px] data-[state=active]:bg-zinc-700 data-[state=active]:text-zinc-100">Cost</TabsTrigger>
           <TabsTrigger value="tradeoffs" className="h-7 px-2 text-[11px] data-[state=active]:bg-zinc-700 data-[state=active]:text-zinc-100">Trade-offs</TabsTrigger>
         </TabsList>
       </div>
@@ -113,6 +115,14 @@ function RightTabs({ onSimulate }: { onSimulate: () => void }) {
         <ScrollArea className="h-full">
           <div className="p-3">
             <CapacityCalculator />
+          </div>
+        </ScrollArea>
+      </TabsContent>
+
+      <TabsContent value="cost" className="mt-0 flex-1 overflow-hidden min-h-0">
+        <ScrollArea className="h-full">
+          <div className="p-3">
+            <CostReport />
           </div>
         </ScrollArea>
       </TabsContent>

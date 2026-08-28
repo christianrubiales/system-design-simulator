@@ -24,11 +24,12 @@ interface AppState {
   /** Show per-node runtime detail (qps, utilization bar, health dot) on canvas nodes. */
   nodeDetailsVisible: boolean;
   activeLeftTab: "components" | "problems" | "learn";
-  activeRightTab: "properties" | "simulation" | "score" | "capacity" | "tradeoffs";
+  activeRightTab: "properties" | "simulation" | "score" | "capacity" | "cost" | "tradeoffs";
   toast: ToastData | null;
   /**
-   * Deployment region, used only for availability warnings in the palette and
-   * on nodes. Deliberately does NOT affect simulation, scoring, or cost.
+   * Deployment region. Drives availability warnings in the palette and on
+   * nodes, and scales the cost estimate by that region's price multiplier.
+   * Deliberately does NOT affect simulation or scoring.
    */
   region: string;
 
