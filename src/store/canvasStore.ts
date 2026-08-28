@@ -12,6 +12,7 @@ import {
 } from "@xyflow/react";
 import { useSimulationStore } from "./simulationStore";
 import { safeLocalStorage } from "./safeStorage";
+import { upgradeNodeData } from "@/data/upgradeNodeData";
 
 export interface ComponentNodeData {
   componentId: string;
@@ -86,6 +87,18 @@ function stripRuntimeFields(nodes: Node[]): Node[] {
     delete data.status;
     delete data.isBottleneck;
     return { ...n, data };
+  });
+}
+
+/**
+ * Re-resolve persisted component nodes against the current catalog on
+ * rehydrate. Text nodes and unresolvable ids (custom components) pass through
+ * untouched. Read-path only — nothing is written back to storage here.
+ */
+function upgradeComponentNodes(nodes: Node[]): Node[] {
+  return nodes.map((n) => {
+    if (n.type === "text" || typeof n.data?.componentId !== "string") return n;
+    return { ...n, data: upgradeNodeData(n.data as unknown as ComponentNodeData) };
   });
 }
 
@@ -427,6 +440,15 @@ export const useCanvasStore = create<CanvasState>()(
           Pick<CanvasState, "nodes" | "edges" | "tabs" | "activeTabId">
         >;
         const merged: CanvasState = { ...currentState, ...persisted };
+        // A canvas persisted before the AWS catalog holds generic nodes
+        // ("cache" / "Cache" / "Zap"). Resolve them through the concept bridge
+        // so an in-progress design comes back as AWS instead of sitting stale
+        // beside an AWS palette. Custom components are left untouched.
+        merged.nodes = upgradeComponentNodes(merged.nodes);
+        merged.tabs = (merged.tabs ?? []).map((t) => ({
+          ...t,
+          nodes: upgradeComponentNodes(t.nodes),
+        }));
         // Refill the active tab's snapshot from the live nodes/edges.
         if (merged.tabs && merged.tabs.length > 0) {
           merged.tabs = merged.tabs.map((t) =>

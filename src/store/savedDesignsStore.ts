@@ -8,6 +8,7 @@ import { useSimulationStore } from "./simulationStore";
 import { useCustomProblemsStore } from "./customProblemsStore";
 import { safeLocalStorage } from "./safeStorage";
 import { PROBLEMS } from "@/data/problems";
+import { upgradeNodeData } from "@/data/upgradeNodeData";
 
 export interface SerializedComponentData {
   componentId: string;
@@ -317,6 +318,10 @@ export const useSavedDesignsStore = create<SavedDesignsState>()(
       loadDesign: (id: string) => {
         const design = get().designs.find((d) => d.id === id);
         if (!design) return;
+        // Designs saved before the AWS catalog carry generic ids ("cache") and
+        // generic presentation ("Cache" / "Zap"). upgradeComponentData brings
+        // them back as AWS nodes. Read-path only: nothing is written back, so
+        // loading never mutates what the user stored.
 
         // Restore canvas state
         const restoredNodes: Node[] = design.nodes.map((n) => {
@@ -334,7 +339,7 @@ export const useSavedDesignsStore = create<SavedDesignsState>()(
             id: n.id,
             type: n.type,
             position: n.position,
-            data: { ...n.data } as ComponentNodeData,
+            data: upgradeNodeData(n.data as SerializedComponentData) as ComponentNodeData,
           };
         });
 
