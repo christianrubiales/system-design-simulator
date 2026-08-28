@@ -80,9 +80,10 @@ Each service's `maxQPS` and `latencyMs` carries a source comment citing the AWS 
 New file `src/data/conceptMap.ts`:
 
 ```ts
-export const CONCEPT_DEFAULT: Record<Concept, string>;
-export function resolveComponentId(id: string): string | undefined;
+export const CONCEPT_DEFAULT: Record<Concept, string | null>; // null = pattern node
+export function resolveComponentId(id: string): string;       // total: unknown ids pass through
 export function conceptOf(componentId: string): Concept | undefined;
+export const PATTERN_CONCEPTS: ReadonlySet<Concept>;
 ```
 
 `resolveComponentId` returns the argument if it is already a catalog id, the mapped AWS service if it is a concept alias, and `undefined` otherwise. `loadReference.ts` resolves through it, so all 35 reference solutions keep their existing `componentId: "cache"` literals and render as ElastiCache nodes.
@@ -91,7 +92,9 @@ export function conceptOf(componentId: string): Concept | undefined;
 
 #### Collision rule
 
-Two concepts must never map to the same default service — the reference-solution loader wires edges by resolved id, so a collision silently mis-wires a diagram. Where two concepts would collide and no genuinely distinct AWS service exists, the second concept becomes a **pattern node** instead of getting a default.
+Two concepts must never map to the same default service. **Corrected during implementation:** the original rationale here claimed a collision "silently mis-wires" a diagram. It does not — `loadReference.ts` round-robins duplicate ids, so a collision renders *two identical-looking nodes* in a reference solution. That reads as a mistake to the candidate, so the rule stands, but it is a content-quality rule rather than a correctness one.
+
+Where two concepts would collide and no genuinely distinct AWS service exists, the second concept becomes a **pattern node** instead of getting a default.
 
 #### Concept mapping
 
@@ -99,7 +102,7 @@ Two concepts must never map to the same default service — the reference-soluti
 |---|---|
 | dns | Route 53 |
 | cdn | CloudFront |
-| load-balancer | Elastic Load Balancing (ALB) |
+| load-balancer | ALB (NLB ships alongside as an AWS-only entry) |
 | api-gateway | API Gateway |
 | rate-limiter | AWS WAF |
 | app-server | EC2 |
@@ -146,7 +149,9 @@ This is the constraint the catalog schema must honor: adding any of these must r
 
 These are architectural patterns, not purchasable services. Origin shield is a CloudFront feature; vector search is a capability of OpenSearch and Aurora, not a product; a reverse proxy in AWS is whatever ALB or CloudFront already covers. They remain first-class catalog entries under `category: "pattern"`, with `concept` set to themselves, no `awsIcon`, and their current Lucide icon.
 
-Catalog total: ~45 AWS services + 9 pattern nodes + `custom` ≈ 55 entries.
+Catalog total as built: **46 AWS services + 9 pattern nodes + `custom` = 56 entries.** (46 rather than 45 because the single Elastic Load Balancing entry was split into ALB and NLB during implementation.)
+
+**Labels use short AWS service names** — `EC2`, `S3`, `ALB`, `NLB`, `DynamoDB`, `ElastiCache`, `CloudFront` — in AWS's own casing, with the full product name in `awsService` for tooltips.
 
 ### 3. Icons
 
@@ -204,7 +209,7 @@ The repo has no test framework, and a browser click-through does not cover a 55-
 
 **1. `scripts/check-catalog.ts`, wired into `npm run build`.** Fails the build if:
 
-- any `componentId` in `problems.ts`, `conceptLibrary.ts`, or `learningPath.ts` fails to resolve;
+- any `componentId` in `problems.ts` or `conceptLibrary.ts` fails to resolve. **Corrected during implementation:** `learningPath.ts` is *not* checked — it contains no component ids at all; its `concepts` field holds topic strings like `"caching"`. CLAUDE.md was wrong about this and has been fixed;
 - any single reference solution resolves two entries to the same id (the collision rule, enforced mechanically);
 - any `awsIcon` has no corresponding file in `public/aws-icons/`;
 - any `Concept` lacks a `CONCEPT_DEFAULT` entry or a pattern-node declaration.

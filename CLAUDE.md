@@ -14,6 +14,7 @@ SystemForge — an open-source system-design interview simulator. Drag infrastru
 npm run dev      # dev server (http://localhost:3000)
 npm run build    # production build — also runs tsc; must pass before pushing
 npm run lint     # eslint
+npm run check:catalog  # catalog/bridge data invariants — `npm run build` gates on it
 npx tsc --noEmit # type-check only
 ```
 
@@ -36,7 +37,9 @@ src/
     interview/    InterviewBar, phase panel, start dialog
     dialogs/      ModalShell (shared modal: focus trap/Escape/scroll) + Save/Load/Confirm/Support/Create*
     ui/           shadcn-style primitives, Toast
-  data/           components.ts (30 specs), problems.ts (35), conceptLibrary.ts,
+  data/           components.ts (56 specs: 46 AWS services + 9 patterns + custom),
+                  conceptMap.ts (concept bridge), upgradeNodeData.ts,
+                  problems.ts (35), conceptLibrary.ts,
                   interviewData.ts, tradeoffCards.ts (21), learningPath.ts
   engine/         simulator.ts (traffic sim), constants.ts
   scoring/        scorer.ts + rules/ (scalability, availability, latency, cost, tradeoffs — 20 pts each)
@@ -59,13 +62,17 @@ src/
 
 ## Data conventions
 
-- Component `id`s referenced in `problems.ts` reference solutions, `conceptLibrary.ts`, and `learningPath.ts` must exist in `components.ts`. A single reference solution must NOT reuse the same `componentId` twice (the loader wires edges by componentId).
+- **The concept bridge.** The content layer (`problems.ts`, `conceptLibrary.ts`) speaks the *generic* vocabulary — `"cache"`, `"app-server"`, `"nosql-db"` — while `components.ts` holds *AWS service ids* — `"elasticache"`, `"ec2"`, `"dynamodb"`. `conceptMap.ts` translates between them via `resolveComponentId` / `conceptOf`. This is why the AWS catalog landed without editing a single reference solution. **No two concepts may map to the same service** (they would render as duplicate identical nodes); pattern concepts map to `null` and resolve to themselves.
+- Component `id`s referenced in `problems.ts` reference solutions and `conceptLibrary.ts` must resolve — through the bridge — to an entry in `components.ts`. A single reference solution must NOT contain two ids that resolve to the same component. Note `learningPath.ts` does **not** reference component ids; its `concepts` are topic strings like `"caching"`.
+- Every catalog entry's `category` must appear in `COMPONENT_CATEGORIES`, or its components vanish from the palette — invisible to `tsc`, so `check-catalog.ts` enforces it.
+- `npm run check:catalog` enforces all of the above and gates `npm run build`. When adding a check, put it **before** the error-report block or it can never fail.
 - `learningPath.ts` prerequisites must be concepts taught by a strictly **earlier** problem in path order.
 - All 35 problems must have entries in `interviewData.ts` and a learning-path tier.
 - Content teaches interview candidates — every formula, figure, API shape, and real-world attribution must be correct.
 
 ## Conventions
 
-- Dark theme only (`<html class="dark">`); there is no theme toggle. Use zinc-* palette; sub-11px labels use `text-zinc-400`+ for contrast.
+- **Light and dark themes both ship.** The toggle lives in `appStore.ts` + `top-bar.tsx`, with an inline script in `layout.tsx` setting `.dark` before paint. Verify any UI change in **both**. Use zinc-* palette; sub-11px labels use `text-zinc-400`+ for contrast.
+- AWS icons in `public/aws-icons/` are CC-BY-ND 2.0, **not** MIT — see `THIRD-PARTY-NOTICES.md`. They must be redistributed and rendered **unmodified**: never recolor, re-proportion, or minify them, and never add the AWS logo or wordmark. `.gitattributes` pins them `-text` so line-ending normalization cannot alter them. Re-fetch with `scripts/fetch-aws-icons.ts`.
 - Temp/scratch files: keep them out of the repo.
 - Commit messages: do NOT add Claude/AI attribution or co-author trailers.
