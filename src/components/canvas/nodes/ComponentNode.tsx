@@ -8,6 +8,8 @@ import { useCanvasStore } from "@/store/canvasStore";
 import { Server } from "lucide-react";
 import { ICON_MAP } from "@/lib/icons";
 import { CATEGORY_STYLE } from "@/data/components";
+import { getComponentById } from "@/data/componentLookup";
+import { awsIconUrl } from "@/lib/awsIcon";
 import type { ComponentCategory } from "@/types/component";
 import { useIsCoarsePointer } from "@/hooks/useBreakpoint";
 import { useAppStore } from "@/store/appStore";
@@ -26,6 +28,9 @@ function ComponentNodeInner({ id, data, selected }: NodeProps<ComponentNode>) {
   const Icon = ICON_MAP[nodeData.icon] ?? Server;
   const colors =
     CATEGORY_STYLE[nodeData.category as ComponentCategory] ?? CATEGORY_STYLE.compute;
+  // Persisted node data is a snapshot and carries no awsIcon, so read the
+  // current spec from the catalog.
+  const iconUrl = awsIconUrl(getComponentById(nodeData.componentId));
   const status = (nodeData.status as string) ?? "idle";
   const statusDot = STATUS_DOT[status] ?? STATUS_DOT.idle;
   const isBottleneck = nodeData.isBottleneck ?? false;
@@ -96,7 +101,13 @@ function ComponentNodeInner({ id, data, selected }: NodeProps<ComponentNode>) {
       {/* Icon + Label row */}
       <div className="flex items-center gap-2">
         <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ring-1 ${colors.chip} ${colors.icon} ${colors.ring}`}>
-          <Icon className="h-4 w-4" />
+          {iconUrl ? (
+            // Decorative: the node's label already names the service.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={iconUrl} alt="" aria-hidden className="h-4 w-4" draggable={false} />
+          ) : (
+            <Icon className="h-4 w-4" />
+          )}
         </div>
         {editing ? (
           <input

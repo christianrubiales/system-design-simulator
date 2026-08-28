@@ -14,6 +14,7 @@ import {
   CATEGORY_STYLE,
 } from "@/data/components";
 import { getComponentById } from "@/data/componentLookup";
+import { awsIconUrl } from "@/lib/awsIcon";
 import { CONCEPT_LIBRARY } from "@/data/conceptLibrary";
 import { Server, GripVertical, Plus, Search as SearchIcon, Sparkles, Trash2 } from "lucide-react";
 import { ICON_MAP } from "@/lib/icons";
@@ -167,6 +168,7 @@ export function ComponentPalette({ onCreateCustomComponent, onComponentAdded }: 
                     CATEGORY_STYLE[item.category as ComponentCategory] ?? CATEGORY_STYLE.compute;
                   const accent = style.icon;
                   const iconBg = style.chip;
+                  const itemIconUrl = awsIconUrl(item);
                   // Concept cards are keyed by the generic vocabulary, so AWS
                   // services look theirs up via the concept they represent.
                   const concept = CONCEPT_LIBRARY[item.concept ?? item.id];
@@ -185,7 +187,19 @@ export function ComponentPalette({ onCreateCustomComponent, onComponentAdded }: 
                           >
                             <GripVertical className="h-3 w-3 shrink-0 text-zinc-600 opacity-0 transition-opacity group-hover:opacity-100" />
                             <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${iconBg}`}>
-                              <Icon className={`h-3.5 w-3.5 shrink-0 transition-colors ${accent}`} />
+                              {itemIconUrl ? (
+                                // Decorative: the row label already names the service.
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={itemIconUrl}
+                                  alt=""
+                                  aria-hidden
+                                  className="h-3.5 w-3.5 shrink-0"
+                                  draggable={false}
+                                />
+                              ) : (
+                                <Icon className={`h-3.5 w-3.5 shrink-0 transition-colors ${accent}`} />
+                              )}
                             </div>
                             <span className="min-w-0 flex-1 truncate">{item.label}</span>
                             {isCustom && (
