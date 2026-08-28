@@ -25,6 +25,8 @@ export interface ComponentNodeData {
   maxQPS: number;
   latencyMs: number;
   scalable: boolean;
+  /** Per-service configuration; see serviceConfig.ts. Absent means defaults. */
+  config?: Record<string, string | number | boolean>;
   utilization?: number;
   status?: string;
   isBottleneck?: boolean;
@@ -379,6 +381,11 @@ export const useCanvasStore = create<CanvasState>()(
             n.id === nodeId ? { ...n, data: { ...n.data, ...data } } : n
           ),
         }));
+        // Stale metrics would describe a machine that no longer exists. Only
+        // capacity-affecting fields trigger this — the simulator writes its own
+        // results back through updateAllNodeData, which must not reset itself.
+        const CAPACITY_FIELDS = ["config", "maxQPS", "latencyMs", "replicas"] as const;
+        if (CAPACITY_FIELDS.some((k) => k in data)) resetSimulation();
       },
       updateEdgeData: (edgeId, data) => {
         set((state) => ({

@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Info, Trash2, Lightbulb, ChevronDown, ChevronRight, CheckSquare, BookOpen, Target, AlertTriangle, MessageCircle, Layers, Pencil } from "lucide-react";
 import type { Edge } from "@xyflow/react";
@@ -20,6 +19,7 @@ import { ScoreReport } from "./ScoreReport";
 import { CapacityCalculator } from "./CapacityCalculator";
 import { TradeoffLog } from "./TradeoffLog";
 import { TradeoffCards } from "./TradeoffCards";
+import { ConfigPanel } from "./ConfigPanel";
 import { useInterviewStore } from "@/store/interviewStore";
 import { InterviewPhasePanel } from "@/components/interview/InterviewPhasePanel";
 
@@ -263,14 +263,17 @@ function PropertiesTab() {
   const selectedNodeId = useCanvasStore((s) => s.selectedNodeId);
   const selectedEdgeId = useCanvasStore((s) => s.selectedEdgeId);
   const nodes = useCanvasStore((s) => s.nodes);
-  const updateNodeData = useCanvasStore((s) => s.updateNodeData);
   const deleteNode = useCanvasStore((s) => s.deleteNode);
+  const tabs = useCanvasStore((s) => s.tabs);
+  const activeTabId = useCanvasStore((s) => s.activeTabId);
   const selectedProblemId = useAppStore((s) => s.selectedProblemId);
 
   const selectedNode = nodes.find((n) => n.id === selectedNodeId) as
     | (typeof nodes[number] & { data: ComponentNodeData })
     | undefined;
   const problem = getProblemById(selectedProblemId);
+  // Reference tabs gate config editing like every other mutation.
+  const isNodeReadOnly = tabs.find((t) => t.id === activeTabId)?.readOnly === true;
 
   return (
     <div className="space-y-4">
@@ -376,29 +379,12 @@ function PropertiesTab() {
               </p>
             </div>
 
-            {/* Replicas slider \u2014 shown for every component node */}
-            <div>
-              <div className="mb-1.5 flex items-center justify-between">
-                <label className="text-xs text-zinc-400">Replicas</label>
-                <span className="font-mono text-xs text-cyan-500">
-                  {data.replicas as number}
-                </span>
-              </div>
-              <Slider
-                aria-label="Replicas"
-                value={[data.replicas as number]}
-                onValueChange={(v) =>
-                  updateNodeData(selectedNode.id, { replicas: Array.isArray(v) ? v[0] : v })
-                }
-                min={1}
-                max={20}
-                step={1}
-                className=""
-              />
-              <p className="mt-1 text-[11px] text-zinc-400">
-                Effective capacity: {(data.maxQPS as number) === Infinity ? "\u221e" : new Intl.NumberFormat("en-US").format((data.maxQPS as number) * (data.replicas as number))} QPS
-              </p>
-            </div>
+            {/* Per-service configuration; instance count lives here as `replicas`. */}
+            <ConfigPanel
+              nodeId={selectedNode.id}
+              data={data as unknown as ComponentNodeData}
+              readOnly={isNodeReadOnly}
+            />
 
             {/* Info */}
             <div className="space-y-1">

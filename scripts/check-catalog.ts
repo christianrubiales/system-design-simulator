@@ -17,6 +17,8 @@ import {
 } from "../src/data/regionAvailability";
 import { PROBLEMS } from "../src/data/problems";
 import { validateConnection, SERVICE_PORTS } from "../src/data/connectionRules";
+import { SERVICE_CONFIG, deriveCapacity, defaultConfig } from "../src/data/serviceConfig";
+import { INSTANCE_FAMILIES } from "../src/data/instanceFamilies";
 
 const root = process.cwd();
 const errors: string[] = [];
@@ -207,6 +209,63 @@ for (const p of PROBLEMS) {
 for (const id of Object.keys(SERVICE_PORTS)) {
   if (!catalogIds.has(id)) {
     errors.push(`connectionRules.ts: "${id}" is not a catalog entry`);
+  }
+}
+
+// --- 15-18. Config schemas ---
+for (const c of SYSTEM_COMPONENTS) {
+  if (c.id === "custom" || c.category === "pattern") continue;
+  const spec = SERVICE_CONFIG[c.id];
+
+  // 15. Every configurable service needs a schema (`params: []` is valid).
+  if (!spec) {
+    errors.push(`serviceConfig.ts: "${c.id}" has no SERVICE_CONFIG entry`);
+    continue;
+  }
+
+  // 16. Defaults must be valid, and param ids unique within a service.
+  const seenParams = new Set<string>();
+  for (const p of spec.params) {
+    if (seenParams.has(p.id)) {
+      errors.push(`serviceConfig.ts: "${c.id}" has duplicate param id "${p.id}"`);
+    }
+    seenParams.add(p.id);
+
+    if (p.kind === "instance") {
+      // 17. Referenced families must exist, and the default must be one of their sizes.
+      const sizes: string[] = [];
+      for (const fam of p.families) {
+        const family = INSTANCE_FAMILIES[fam];
+        if (!family) {
+          errors.push(`serviceConfig.ts: "${c.id}.${p.id}" references unknown family "${fam}"`);
+          continue;
+        }
+        sizes.push(...family.sizes.map((s) => s.size));
+      }
+      if (sizes.length > 0 && !sizes.includes(p.default)) {
+        errors.push(
+          `serviceConfig.ts: "${c.id}.${p.id}" default "${p.default}" is not in its families`,
+        );
+      }
+    } else if (p.kind === "choice") {
+      if (!p.options.some((o) => o.value === p.default)) {
+        errors.push(`serviceConfig.ts: "${c.id}.${p.id}" default "${p.default}" is not an option`);
+      }
+    } else if (p.kind === "number") {
+      if (p.default < p.min || p.default > p.max) {
+        errors.push(
+          `serviceConfig.ts: "${c.id}.${p.id}" default ${p.default} is outside ${p.min}..${p.max}`,
+        );
+      }
+    }
+  }
+
+  // 18. ANTI-DRIFT: the catalog figure IS capacity at default configuration.
+  const derived = deriveCapacity(c.id, defaultConfig(c.id));
+  if (derived.maxQPS !== c.maxQPS) {
+    errors.push(
+      `serviceConfig.ts: "${c.id}" derives ${derived.maxQPS} QPS at defaults but the catalog says ${c.maxQPS} (${derived.explanation})`,
+    );
   }
 }
 

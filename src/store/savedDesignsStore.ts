@@ -19,6 +19,13 @@ export interface SerializedComponentData {
   maxQPS: number;
   latencyMs: number;
   scalable: boolean;
+  /**
+   * Per-service configuration (instance size, capacity units, storage class…).
+   * MUST be carried here — serializeNodes picks fields explicitly, so omitting
+   * it silently discards every configuration choice on save, the same failure
+   * mode as dropping `SerializedEdge.data`.
+   */
+  config?: Record<string, string | number | boolean>;
 }
 
 export interface SerializedTextData {
@@ -98,6 +105,7 @@ export function serializeNodes(
         maxQPS: n.data.maxQPS,
         latencyMs: n.data.latencyMs,
         scalable: n.data.scalable,
+        config: n.data.config,
       } as SerializedComponentData,
     };
   });

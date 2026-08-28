@@ -1,5 +1,6 @@
 import { SYSTEM_COMPONENTS } from "@/data/components";
 import { resolveComponentId } from "@/data/conceptMap";
+import { deriveCapacity } from "@/data/serviceConfig";
 
 /**
  * The catalog-owned presentation fields carried in a persisted component node.
@@ -34,14 +35,23 @@ export function upgradeNodeData<T extends UpgradableNodeData>(data: T): T {
   const resolved = resolveComponentId(data.componentId);
   const spec = SYSTEM_COMPONENTS.find((c) => c.id === resolved);
   if (!spec) return data;
+
+  // A configured node's capacity comes from its config, NOT the catalog default.
+  // Resetting maxQPS here would silently discard the user's instance sizing —
+  // it would look like "my saved design forgot its instance types".
+  const config = (data as UpgradableNodeData & {
+    config?: Record<string, string | number | boolean>;
+  }).config;
+  const capacity = config ? deriveCapacity(resolved, config) : null;
+
   return {
     ...data,
     componentId: spec.id,
     label: spec.label,
     icon: spec.icon,
     category: spec.category,
-    maxQPS: spec.maxQPS,
-    latencyMs: spec.latencyMs,
+    maxQPS: capacity ? capacity.maxQPS : spec.maxQPS,
+    latencyMs: capacity ? capacity.latencyMs : spec.latencyMs,
     scalable: spec.scalable,
   };
 }
