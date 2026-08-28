@@ -1,9 +1,13 @@
 import type { Node, Edge } from "@xyflow/react";
 import type { ComponentNodeData } from "@/store/canvasStore";
 import type { CategoryScore, ScoringGraph } from "@/types/scoring";
+import { rolesOf } from "@/scoring/concepts";
 
 // Point budget (max 20): LB 3 + scalable compute 3 + cache 3 + queue 3 +
 // DB scaling 3 + CDN 3 + LB->compute wiring 2 = 20
+// ECS/EKS/Fargate live under "containers" — an app tier all the same.
+const COMPUTE_CATEGORIES = new Set(["compute", "containers"]);
+
 export function scoreScalability(
   nodes: Node<ComponentNodeData>[],
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -16,18 +20,23 @@ export function scoreScalability(
 
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
   const connectedNodes = nodes.filter((n) => graph.reachable.has(n.id));
-  const connectedIds = new Set(connectedNodes.map((n) => n.data.componentId));
-  const placedIds = new Set(nodes.map((n) => n.data.componentId));
+  // NOTE: these hold ARCHITECTURAL ROLES, not component ids. Matching on raw
+  // ids is what silently broke scoring when the catalog moved to AWS names —
+  // every check for "cache"/"nosql-db" returned false and the reference
+  // solutions fell to 27/100. rolesOf() maps a service to its concept plus
+  // everything it satisfies, so Aurora counts as a SQL database.
+  const connectedIds = new Set(connectedNodes.flatMap((n) => [...rolesOf(String(n.data.componentId))]));
+  const placedIds = new Set(nodes.flatMap((n) => [...rolesOf(String(n.data.componentId))]));
 
   const hasLB = connectedIds.has("load-balancer");
   const hasCache = connectedIds.has("cache");
   const hasQueue = connectedIds.has("message-queue");
   const hasCDN = connectedIds.has("cdn");
   const hasScalableCompute = connectedNodes.some(
-    (n) => n.data.category === "compute" && n.data.scalable
+    (n) => COMPUTE_CATEGORIES.has(String(n.data.category)) && n.data.scalable
   );
   const placedScalableCompute = nodes.some(
-    (n) => n.data.category === "compute" && n.data.scalable
+    (n) => COMPUTE_CATEGORIES.has(String(n.data.category)) && n.data.scalable
   );
   // NoSQL databases scale horizontally out of the box (replicas=1 is fine);
   // SQL needs explicit read replicas to scale reads.
@@ -133,7 +142,7 @@ export function scoreScalability(
       for (const child of graph.adjacency.get(id) ?? []) {
         if (visited.has(child)) continue;
         visited.add(child);
-        if (nodeMap.get(child)?.data.category === "compute") return true;
+        if (COMPUTE_CATEGORIES.has(String(nodeMap.get(child)?.data.category))) return true;
         queue.push(child);
       }
     }
@@ -147,7 +156,7 @@ export function scoreScalability(
       for (const childId of children) {
         const target = nodeMap.get(childId);
         if (!target) continue;
-        if (target.data.category === "compute") {
+        if (COMPUTE_CATEGORIES.has(String(target.data.category))) {
           lbToCompute = true;
           break outer;
         }

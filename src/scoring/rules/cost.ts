@@ -1,9 +1,11 @@
 import type { Node, Edge } from "@xyflow/react";
 import type { ComponentNodeData } from "@/store/canvasStore";
 import type { CategoryScore, ScoringGraph } from "@/types/scoring";
+import { rolesOf, nodeIs } from "@/scoring/concepts";
 
-// Point budget (max 20): component count 3 + storage count 3 + cache savings 3 +
-// no disconnected nodes 3 + CDN 3 + queue 3 + no duplicate networking 2 = 20
+// Point budget (max 20): capacity matched to load 3 + no per-request billing on
+// bulk traffic 2 + storage count 3 + cache savings 3 + no disconnected nodes 3 +
+// CDN 3 + queue 3 = 20
 export function scoreCost(
   nodes: Node<ComponentNodeData>[],
   edges: Edge[],
@@ -13,33 +15,88 @@ export function scoreCost(
   const passed: string[] = [];
   let score = 0;
 
-  const componentIds = nodes.map((n) => n.data.componentId);
   const connectedNodes = nodes.filter((n) => graph.reachable.has(n.id));
-  const connectedIds = new Set(connectedNodes.map((n) => n.data.componentId));
-  const placedIds = new Set(componentIds);
+  // NOTE: these hold ARCHITECTURAL ROLES, not component ids. Matching on raw
+  // ids is what silently broke scoring when the catalog moved to AWS names —
+  // every check for "cache"/"nosql-db" returned false and the reference
+  // solutions fell to 27/100. rolesOf() maps a service to its concept plus
+  // everything it satisfies, so Aurora counts as a SQL database.
+  const connectedIds = new Set(connectedNodes.flatMap((n) => [...rolesOf(String(n.data.componentId))]));
+  const placedIds = new Set(nodes.flatMap((n) => [...rolesOf(String(n.data.componentId))]));
 
-  // Not over-provisioned (3 pts) — total component count reasonable
-  if (nodes.length >= 3 && nodes.length <= 25) {
+  // Capacity matched to load (3 pts).
+  //
+  // This used to award points for having between 3 and 25 components, which is
+  // a proxy for cost rather than cost. Now that the simulator reports per-node
+  // utilization, we can measure the actual waste: capacity you provisioned and
+  // are not using. Absolute dollars would not work here — a URL shortener and a
+  // video platform have wildly different legitimate budgets — but utilization
+  // is comparable across every problem.
+  const simulated = connectedNodes.filter(
+    (n) => typeof n.data.utilization === "number" && (n.data.incomingQPS ?? 1) !== 0,
+  );
+  const idleExpensive = connectedNodes.filter((n) => {
+    const u = n.data.utilization;
+    return typeof u === "number" && u > 0 && u < 0.1 && (Number(n.data.replicas) || 1) > 1;
+  });
+  const overSized = connectedNodes.filter((n) => {
+    const u = n.data.utilization;
+    return typeof u === "number" && u > 0 && u < 0.05;
+  });
+
+  if (simulated.length === 0) {
+    // No simulation yet — fall back to the structural sanity check.
+    if (nodes.length >= 3 && nodes.length <= 25) {
+      score += 3;
+      passed.push(
+        "Reasonable component count (" + nodes.length + "). Run a simulation to score capacity against real utilization.",
+      );
+    } else if (nodes.length < 3) {
+      score += 1;
+      feedback.push(
+        "Only " + nodes.length + " component(s) — under-provisioned for any real workload. A minimal production system needs at least DNS → Load Balancer → App Server → Database.",
+      );
+    } else {
+      feedback.push(
+        nodes.length + " components is likely over-engineered. Every component carries hosting, monitoring, and on-call cost.",
+      );
+    }
+  } else if (overSized.length === 0 && idleExpensive.length === 0) {
     score += 3;
-    passed.push("Appropriate number of components (" + nodes.length + ") — not over-engineered or under-provisioned");
-  } else if (nodes.length < 3) {
-    score += 1;
-    feedback.push(
-      "System has only " + nodes.length + " component(s) — this is under-provisioned for any real workload. A minimal production system needs at least DNS → Load Balancer → App Server → Database. Add the missing layers."
-    );
-  } else if (nodes.length <= 35) {
-    score += 1;
-    feedback.push(
-      "System has " + nodes.length + " components — this is getting complex. Each component adds operational cost (hosting, monitoring, on-call burden). Verify each component serves a distinct, necessary purpose."
-    );
+    passed.push("Capacity is matched to load — no component is sitting far below its provisioned ceiling");
   } else {
+    const worst = [...overSized, ...idleExpensive][0];
+    score += 1;
     feedback.push(
-      "System has " + nodes.length + " components — this is likely over-engineered. Each component adds operational cost (hosting, monitoring, on-call burden). Over-engineering a simple problem is as costly as under-engineering a complex one. Consider consolidating."
+      "You are paying for capacity you are not using: " +
+        String(worst.data.label) +
+        " is at " +
+        Math.round((Number(worst.data.utilization) || 0) * 100) +
+        "% utilization. Right-size it, or reduce the instance count — over-provisioning is the most common source of avoidable AWS spend.",
     );
   }
 
+  // Expensive service where a cheaper one would do (2 pts).
+  // API Gateway bills per request; at high traffic an ALB costs orders of
+  // magnitude less for the same routing.
+  const apiGwNodes = connectedNodes.filter((n) => nodeIs(n, "api-gateway"));
+  const pricey = apiGwNodes.find((n) => (Number(n.data.incomingQPS) || 0) > 20000);
+  if (pricey) {
+    feedback.push(
+      "API Gateway is carrying " +
+        Math.round(Number(pricey.data.incomingQPS) / 1000) +
+        "k req/s. It bills per request, so at this volume it costs orders of magnitude more than an ALB doing the same routing. Keep API Gateway where you need its authorization, throttling, and transformation features; use an ALB for raw traffic.",
+    );
+  } else {
+    score += 2;
+    passed.push("No per-request-billed service is carrying bulk traffic");
+  }
+
   // Appropriate storage choice (3 pts)
-  const storageNodes = nodes.filter((n) => n.data.category === "storage");
+  // Databases moved to their own category when the catalog went AWS; counting
+  // only "storage" would miss RDS and DynamoDB entirely.
+  const DATA_CATEGORIES = new Set(["storage", "database"]);
+  const storageNodes = nodes.filter((n) => DATA_CATEGORIES.has(String(n.data.category)));
   if (storageNodes.length >= 1 && storageNodes.length <= 5) {
     score += 3;
     passed.push("Appropriate number of storage components — each serves a distinct purpose");
@@ -121,18 +178,11 @@ export function scoreCost(
   }
 
   // Efficient architecture — not duplicating functionality (2 pts)
-  const hasApiGw = placedIds.has("api-gateway");
-  const hasRateLimiter = placedIds.has("rate-limiter");
-  const hasServiceMesh = placedIds.has("service-mesh");
-  const duplicateNetworking = hasApiGw && hasRateLimiter && hasServiceMesh;
-  if (!duplicateNetworking) {
-    score += 2;
-    passed.push("No excessive duplication of networking functionality");
-  } else {
-    feedback.push(
-      "You have an API Gateway, Rate Limiter, and Service Mesh — some functionality overlaps. API Gateways often include rate limiting built-in. Consider whether you need all three or if consolidating would reduce complexity and cost."
-    );
-  }
+  // The old "duplicate networking" check (2 pts) is gone: API Gateway now
+  // satisfies the rate-limiter role, so "has both" is no longer an overlap —
+  // it is one service filling two jobs. Those 2 points moved to the
+  // per-request-billing check above, which measures something real.
+
 
   return { category: "Cost Efficiency", score, maxScore: 20, feedback, passed };
 }

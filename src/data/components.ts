@@ -26,6 +26,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "cloudfront",
     label: "CloudFront",
+    satisfies: ["reverse-proxy", "origin-shield"],
     category: "networking",
     icon: "Cloudy",
     awsIcon: "cloudfront",
@@ -65,6 +66,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "nlb",
     label: "NLB",
+    satisfies: ["load-balancer", "reverse-proxy"],
     category: "networking",
     icon: "Network",
     awsIcon: "nlb",
@@ -84,6 +86,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "api-gateway",
     label: "API Gateway",
+    satisfies: ["rate-limiter"],
     category: "networking",
     icon: "Router",
     awsIcon: "api-gateway",
@@ -120,6 +123,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "nat-gateway",
     label: "NAT Gateway",
+    satisfies: ["reverse-proxy"],
     category: "networking",
     icon: "Router",
     awsIcon: "nat-gateway",
@@ -173,6 +177,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "waf",
     label: "WAF",
+    satisfies: ["rate-limiter"],
     category: "security",
     icon: "ShieldAlert",
     awsIcon: "waf",
@@ -211,6 +216,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "lambda",
     label: "Lambda",
+    satisfies: ["app-server"],
     category: "compute",
     icon: "Zap",
     awsIcon: "lambda",
@@ -230,6 +236,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "fargate",
     label: "Fargate",
+    satisfies: ["app-server"],
     category: "compute",
     icon: "Box",
     awsIcon: "fargate",
@@ -247,6 +254,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "ecs",
     label: "ECS",
+    satisfies: ["app-server"],
     category: "containers",
     icon: "Box",
     awsIcon: "ecs",
@@ -263,6 +271,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "eks",
     label: "EKS",
+    satisfies: ["app-server"],
     category: "containers",
     icon: "Box",
     awsIcon: "eks",
@@ -367,6 +376,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "aurora",
     label: "Aurora",
+    satisfies: ["sql-db"],
     category: "database",
     icon: "Database",
     awsIcon: "aurora",
@@ -384,6 +394,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "documentdb",
     label: "DocumentDB",
+    satisfies: ["nosql-db"],
     category: "database",
     icon: "Database",
     awsIcon: "documentdb",
@@ -400,6 +411,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
 {
     id: "dynamodb",
     label: "DynamoDB",
+    satisfies: ["distributed-lock", "sharded-counter", "geospatial-index"],
     category: "database",
     icon: "HardDrive",
     awsIcon: "dynamodb",
@@ -419,6 +431,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
 {
     id: "elasticache",
     label: "ElastiCache",
+    satisfies: ["distributed-lock", "sharded-counter"],
     category: "database",
     icon: "Zap",
     awsIcon: "elasticache",
@@ -459,6 +472,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
 {
     id: "opensearch",
     label: "OpenSearch",
+    satisfies: ["vector-db"],
     category: "analytics",
     icon: "Search",
     awsIcon: "opensearch",
@@ -477,6 +491,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "athena",
     label: "Athena",
+    satisfies: ["data-warehouse"],
     category: "analytics",
     icon: "Search",
     awsIcon: "athena",
@@ -564,6 +579,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "xray",
     label: "X-Ray",
+    satisfies: ["monitoring"],
     category: "observability",
     icon: "Activity",
     awsIcon: "xray",
@@ -617,6 +633,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
 {
     id: "kinesis",
     label: "Kinesis",
+    satisfies: ["pub-sub"],
     category: "analytics",
     icon: "Waves",
     awsIcon: "kinesis",
@@ -635,6 +652,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "firehose",
     label: "Firehose",
+    satisfies: ["stream-processor"],
     category: "analytics",
     icon: "Waves",
     awsIcon: "firehose",
@@ -653,6 +671,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "msk",
     label: "MSK",
+    satisfies: ["message-queue", "pub-sub", "stream-processor"],
     category: "analytics",
     icon: "Radio",
     awsIcon: "msk",
@@ -670,6 +689,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
 {
     id: "sns",
     label: "SNS",
+    satisfies: ["pub-sub"],
     category: "integration",
     icon: "Bell",
     awsIcon: "sns",
@@ -707,6 +727,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
 {
     id: "timestream",
     label: "Timestream",
+    satisfies: ["data-warehouse"],
     category: "database",
     icon: "TrendingUp",
     awsIcon: "timestream",
@@ -724,6 +745,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
 {
     id: "redshift",
     label: "Redshift",
+    satisfies: ["data-warehouse"],
     category: "analytics",
     icon: "Warehouse",
     awsIcon: "redshift",
@@ -744,6 +766,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
 {
     id: "cloud-map",
     label: "Cloud Map",
+    satisfies: ["coordination-service"],
     category: "observability",
     icon: "Compass",
     awsIcon: "cloud-map",
@@ -803,6 +826,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
 {
     id: "efs",
     label: "EFS",
+    satisfies: ["object-storage"],
     category: "storage",
     icon: "FolderOpen",
     awsIcon: "efs",
@@ -891,6 +915,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
 {
     id: "eventbridge",
     label: "EventBridge",
+    satisfies: ["notification-service"],
     category: "integration",
     icon: "Radio",
     awsIcon: "eventbridge",
@@ -909,6 +934,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "step-functions",
     label: "Step Functions",
+    satisfies: ["task-scheduler"],
     category: "integration",
     icon: "GitBranch",
     awsIcon: "step-functions",
@@ -956,6 +982,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
 {
     id: "appconfig",
     label: "AppConfig",
+    satisfies: ["config-service"],
     category: "observability",
     icon: "Settings",
     awsIcon: "appconfig",

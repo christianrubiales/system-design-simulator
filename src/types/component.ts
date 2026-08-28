@@ -64,6 +64,13 @@ export interface SystemComponent {
   awsService?: string;
   /** Bridge to the generic vocabulary. Absent for AWS-only services. */
   concept?: Concept;
+  /**
+   * Architectural roles this service can fill, beyond its own `concept`.
+   * Scoring matches on these, so Aurora counts as a SQL database and MSK
+   * counts as both a queue and a pub/sub bus. Without this, choosing a better
+   * AWS service than the default would score zero.
+   */
+  satisfies?: Concept[];
   /** AWS-managed vs self-run. Consumed by blended scoring in sub-project 7. */
   managed?: boolean;
   maxQPS: number;

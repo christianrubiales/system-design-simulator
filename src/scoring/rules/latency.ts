@@ -1,6 +1,7 @@
 import type { Node, Edge } from "@xyflow/react";
 import type { ComponentNodeData } from "@/store/canvasStore";
 import type { CategoryScore, ScoringGraph } from "@/types/scoring";
+import { rolesOf, nodeIs } from "@/scoring/concepts";
 
 // Point budget (max 20): CDN 3 + cache-before-DB 4 + hop count 4 + DNS 1 +
 // async offloading 4 + load balancer 2 + low-latency store 2 = 20
@@ -14,8 +15,13 @@ export function scoreLatency(
   let score = 0;
 
   const connectedNodes = nodes.filter((n) => graph.reachable.has(n.id));
-  const connectedIds = new Set(connectedNodes.map((n) => n.data.componentId));
-  const placedIds = new Set(nodes.map((n) => n.data.componentId));
+  // NOTE: these hold ARCHITECTURAL ROLES, not component ids. Matching on raw
+  // ids is what silently broke scoring when the catalog moved to AWS names —
+  // every check for "cache"/"nosql-db" returned false and the reference
+  // solutions fell to 27/100. rolesOf() maps a service to its concept plus
+  // everything it satisfies, so Aurora counts as a SQL database.
+  const connectedIds = new Set(connectedNodes.flatMap((n) => [...rolesOf(String(n.data.componentId))]));
+  const placedIds = new Set(nodes.flatMap((n) => [...rolesOf(String(n.data.componentId))]));
 
   // CDN for static content (3 pts)
   if (connectedIds.has("cdn")) {
@@ -33,10 +39,8 @@ export function scoreLatency(
 
   // Cache before DB (4 pts)
   const adj = graph.adjacency;
-  const cacheNodes = connectedNodes.filter((n) => n.data.componentId === "cache");
-  const dbNodes = connectedNodes.filter(
-    (n) => n.data.componentId === "sql-db" || n.data.componentId === "nosql-db"
-  );
+  const cacheNodes = connectedNodes.filter((n) => nodeIs(n, "cache"));
+  const dbNodes = connectedNodes.filter((n) => nodeIs(n, "sql-db") || nodeIs(n, "nosql-db"));
   const cacheNodeIds = new Set(cacheNodes.map((c) => c.id));
   const dbNodeIds = new Set(dbNodes.map((d) => d.id));
   // (a) Look-through wiring: a DB is reachable within 2 hops from a cache

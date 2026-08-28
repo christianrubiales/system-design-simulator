@@ -1,6 +1,7 @@
 import type { Node, Edge } from "@xyflow/react";
 import type { ComponentNodeData } from "@/store/canvasStore";
 import type { CategoryScore, ScoringGraph } from "@/types/scoring";
+import { rolesOf } from "@/scoring/concepts";
 
 /** Stores whose replicas constitute real data redundancy (a cache is not durable). */
 const DURABLE_STORES = new Set([
@@ -25,8 +26,13 @@ export function scoreAvailability(
   let score = 0;
 
   const connectedNodes = nodes.filter((n) => graph.reachable.has(n.id));
-  const connectedIds = new Set(connectedNodes.map((n) => n.data.componentId));
-  const placedIds = new Set(nodes.map((n) => n.data.componentId));
+  // NOTE: these hold ARCHITECTURAL ROLES, not component ids. Matching on raw
+  // ids is what silently broke scoring when the catalog moved to AWS names —
+  // every check for "cache"/"nosql-db" returned false and the reference
+  // solutions fell to 27/100. rolesOf() maps a service to its concept plus
+  // everything it satisfies, so Aurora counts as a SQL database.
+  const connectedIds = new Set(connectedNodes.flatMap((n) => [...rolesOf(String(n.data.componentId))]));
+  const placedIds = new Set(nodes.flatMap((n) => [...rolesOf(String(n.data.componentId))]));
 
   // Check no single point of failure (3 pts)
   const scalableNodes = nodes.filter((n) => n.data.scalable || (n.data.replicas || 1) > 1);

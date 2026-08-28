@@ -1,6 +1,7 @@
 import type { Node, Edge } from "@xyflow/react";
 import type { ComponentNodeData } from "@/store/canvasStore";
 import type { CategoryScore, ScoringGraph } from "@/types/scoring";
+import { rolesOf } from "@/scoring/concepts";
 
 // Point budget (max 20): read/write separation 3 + polyglot persistence 3 +
 // async queue 3 + defense in depth 3 + architecture breadth 3 + auth 3 +
@@ -16,8 +17,13 @@ export function scoreTradeoffs(
   let score = 0;
 
   const connectedNodes = nodes.filter((n) => graph.reachable.has(n.id));
-  const connectedIds = new Set(connectedNodes.map((n) => n.data.componentId));
-  const placedIds = new Set(nodes.map((n) => n.data.componentId));
+  // NOTE: these hold ARCHITECTURAL ROLES, not component ids. Matching on raw
+  // ids is what silently broke scoring when the catalog moved to AWS names —
+  // every check for "cache"/"nosql-db" returned false and the reference
+  // solutions fell to 27/100. rolesOf() maps a service to its concept plus
+  // everything it satisfies, so Aurora counts as a SQL database.
+  const connectedIds = new Set(connectedNodes.flatMap((n) => [...rolesOf(String(n.data.componentId))]));
+  const placedIds = new Set(nodes.flatMap((n) => [...rolesOf(String(n.data.componentId))]));
 
   // Read/write separation (3 pts) — cache for reads + DB for writes, on the request path
   const hasCache = connectedIds.has("cache");
