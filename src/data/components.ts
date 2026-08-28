@@ -289,55 +289,115 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
       "Dedicated authentication and authorization service that handles user login, token issuance (JWT/OAuth2), session management, and permission checks. Centralizing auth prevents security logic from being scattered across microservices. Examples include AWS Cognito, Auth0, Firebase Auth, and Google Cloud Identity Platform.",
   },
   // Storage
-  {
-    id: "sql-db",
-    label: "SQL Database",
-    category: "storage",
+{
+    id: "rds",
+    label: "RDS",
+    category: "database",
     icon: "Database",
+    awsIcon: "rds",
+    awsService: "Amazon Relational Database Service",
+    concept: "sql-db",
+    managed: true,
+    // Throughput is instance-class dependent; 10,000 QPS models a mid-size
+    // instance on a read-mostly OLTP workload. Scale reads with replicas.
     maxQPS: 10000,
-    latencyMs: 8,
+    latencyMs: 5,
     scalable: false,
     stateful: true,
     description:
-      "Relational database providing ACID transactions, strong consistency, and structured schemas with SQL queries. Best for data with complex relationships, joins, and strict integrity requirements (e.g., financial transactions, user accounts). Examples include Amazon RDS (PostgreSQL/MySQL), Google Cloud SQL, and Amazon Aurora.",
+      "Managed relational database for PostgreSQL, MySQL, MariaDB, Oracle, and SQL Server — AWS handles backups, patching, and failover. Multi-AZ gives you a synchronous standby for high availability; read replicas (up to 5 for MySQL and PostgreSQL) scale reads but not writes. The write ceiling of a single primary is the constraint to name in an interview, and the reason to reach for sharding or DynamoDB at extreme scale.",
   },
   {
-    id: "nosql-db",
-    label: "NoSQL Database",
-    category: "storage",
-    icon: "HardDrive",
+    id: "aurora",
+    label: "Aurora",
+    category: "database",
+    icon: "Database",
+    awsIcon: "aurora",
+    awsService: "Amazon Aurora",
+    managed: true,
+    // AWS positions Aurora MySQL at up to ~5x standard MySQL throughput;
+    // figure models a large writer instance, not a published quota.
     maxQPS: 50000,
     latencyMs: 3,
+    scalable: false,
+    stateful: true,
+    description:
+      "MySQL- and PostgreSQL-compatible database with storage decoupled from compute, replicated six ways across three Availability Zones. Supports up to 15 low-lag read replicas and fails over in well under a minute. Aurora Serverless v2 scales capacity in fine-grained steps for spiky workloads, and Global Database gives cross-region reads with roughly one-second replication lag.",
+  },
+  {
+    id: "documentdb",
+    label: "DocumentDB",
+    category: "database",
+    icon: "Database",
+    awsIcon: "documentdb",
+    awsService: "Amazon DocumentDB",
+    managed: true,
+    // Instance-class dependent; models a mid-size instance.
+    maxQPS: 20000,
+    latencyMs: 5,
+    scalable: false,
+    stateful: true,
+    description:
+      "MongoDB-compatible document database with compute and storage decoupled, replicated six ways across three Availability Zones and scalable to 15 read replicas. Fits JSON-shaped domain data where you want Mongo's query model without operating Mongo yourself. Compatibility covers a defined subset of the MongoDB API, which is the caveat worth stating.",
+  },
+{
+    id: "dynamodb",
+    label: "DynamoDB",
+    category: "database",
+    icon: "HardDrive",
+    awsIcon: "dynamodb",
+    awsService: "Amazon DynamoDB",
+    concept: "nosql-db",
+    managed: true,
+    // Source: default per-table quota is 40,000 read and 40,000 write capacity
+    // units in most regions (soft limit, raisable).
+    maxQPS: 40000,
+    // Source: AWS documents single-digit millisecond latency at any scale.
+    latencyMs: 5,
     scalable: true,
     stateful: true,
     description:
-      "Non-relational database optimized for flexible schemas, horizontal scaling, and high-throughput workloads. Choose it when you need low-latency key-value lookups, wide-column storage, or document-oriented data without complex joins. Amazon DynamoDB, Google Cloud Bigtable, MongoDB Atlas, and Apache Cassandra are widely used.",
+      "Serverless key-value and document database delivering single-digit millisecond reads and writes at effectively any scale, with no instances to size. Partition key design is everything: a hot partition throttles regardless of provisioned capacity. Global tables give multi-region active-active writes, DAX adds a microsecond-latency cache, and streams let you fan changes out to Lambda.",
   },
-  {
-    id: "cache",
-    label: "Cache / Redis",
-    category: "storage",
+{
+    id: "elasticache",
+    label: "ElastiCache",
+    category: "database",
     icon: "Zap",
+    awsIcon: "elasticache",
+    awsService: "Amazon ElastiCache",
+    concept: "cache",
+    managed: true,
+    // A single modern Redis/Valkey node sustains on the order of 100k+ simple
+    // ops/sec; cluster mode scales this across shards.
     maxQPS: 100000,
+    // Source: in-memory access is sub-millisecond; 1ms models the network hop.
     latencyMs: 1,
     scalable: true,
     stateful: true,
     description:
-      "In-memory data store delivering sub-millisecond read latency for frequently accessed data, session storage, leaderboards, and real-time counters. Placing a cache between your app servers and database can reduce DB load by 80-90% for read-heavy workloads. Amazon ElastiCache (Redis/Memcached) and Google Cloud Memorystore are managed options.",
+      "Managed in-memory cache running Redis, Valkey, or Memcached, used to absorb read traffic before it reaches the database and to hold sessions, leaderboards, and rate-limiter counters. Cluster mode shards across nodes for horizontal scale; replicas plus Multi-AZ cover failover. The interview substance is eviction policy, TTLs, and how you avoid a thundering herd when a hot key expires.",
   },
-  {
-    id: "object-storage",
-    label: "Object Storage",
+{
+    id: "s3",
+    label: "S3",
     category: "storage",
     icon: "Archive",
     awsIcon: "s3",
     awsService: "Amazon Simple Storage Service",
-    maxQPS: 25000,
-    latencyMs: 75,
+    concept: "object-storage",
+    managed: true,
+    // Source: at least 5,500 GET/HEAD requests per second per partitioned
+    // prefix (3,500 for PUT/COPY/POST/DELETE). Scales linearly with prefixes,
+    // which is exactly why key design matters.
+    maxQPS: 5500,
+    // Source: first-byte latency for Standard is typically 100-200ms; small
+    // objects served via CloudFront are far faster.
+    latencyMs: 100,
     scalable: true,
     stateful: true,
     description:
-      "Highly durable blob/object storage for unstructured data like images, videos, backups, and static website assets. Offers virtually unlimited capacity with 99.999999999% (11 nines) durability. Amazon S3, Google Cloud Storage, and Azure Blob Storage are the industry standards, often paired with a CDN for fast delivery.",
+      "Object storage with eleven nines of durability, holding images, video, backups, logs, and data-lake files at effectively unlimited scale. Request rates scale per prefix — 5,500 GET/s each — so spreading keys across prefixes is how you scale a hot bucket. Storage classes (Standard, Infrequent Access, Glacier tiers) plus lifecycle rules are the standard cost answer, and it pairs with CloudFront to serve reads at the edge.",
   },
   {
     id: "search",
@@ -352,30 +412,41 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
       "Full-text search engine that indexes and queries large volumes of text with features like fuzzy matching, faceted search, and relevance scoring. Use it when users need to search across product catalogs, logs, or content feeds. Elasticsearch (Amazon OpenSearch), Apache Solr, and Google Cloud Search are common choices.",
   },
   // Messaging
-  {
-    id: "message-queue",
-    label: "Message Queue",
-    category: "messaging",
+{
+    id: "sqs",
+    label: "SQS",
+    category: "integration",
     icon: "MessageSquare",
+    awsIcon: "sqs",
+    awsService: "Amazon Simple Queue Service",
+    concept: "message-queue",
+    managed: true,
+    // Source: standard queues support nearly unlimited transactions per second;
+    // FIFO queues are capped at 300 messages/s (3,000 with batching).
     maxQPS: 100000,
-    latencyMs: 5,
+    latencyMs: 10,
     scalable: true,
     stateful: true,
     description:
-      "Asynchronous message broker that decouples producers from consumers, enabling reliable background processing, event-driven architectures, and traffic spike buffering. Critical for any workflow where synchronous processing would create bottlenecks or coupling. Apache Kafka, Amazon SQS/SNS, Google Cloud Pub/Sub, and RabbitMQ are widely adopted.",
+      "Fully managed queue that decouples producers from consumers and absorbs traffic spikes so a slow downstream service degrades instead of failing. Standard queues give near-unlimited throughput with at-least-once delivery and best-effort ordering; FIFO queues guarantee exactly-once processing and ordering but cap at 300 messages/second (3,000 batched). Dead-letter queues catch messages that repeatedly fail, and visibility timeout is the knob interviewers probe.",
   },
   // Infrastructure
-  {
-    id: "service-mesh",
-    label: "Service Mesh",
-    category: "infrastructure",
-    icon: "GitBranch",
-    maxQPS: 80000,
+{
+    id: "app-mesh",
+    label: "App Mesh",
+    category: "integration",
+    icon: "Compass",
+    awsIcon: "app-mesh",
+    awsService: "AWS App Mesh",
+    managed: true,
+    // Control plane distributing config to Envoy sidecars; the sidecar adds
+    // low-single-digit ms to each hop rather than capping throughput.
+    maxQPS: 100000,
     latencyMs: 2,
     scalable: true,
     stateful: false,
     description:
-      "Transparent service-to-service communication layer that handles mutual TLS, retries, circuit breaking, load balancing, and distributed tracing between microservices. Use it when your microservice count grows beyond what manual configuration can manage. Istio, Linkerd, and AWS App Mesh are leading implementations.",
+      "Service mesh that puts an Envoy sidecar beside each service to standardize retries, timeouts, circuit breaking, mTLS, and traffic shifting — moving that logic out of application code and into the platform. Gives uniform observability across services regardless of language. Justified once you have enough services that per-service reimplementation of these concerns becomes the problem.",
   },
   {
     id: "monitoring",
@@ -390,29 +461,41 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
       "Observability stack for metrics collection, centralized logging, distributed tracing, and alerting. Every production system needs monitoring to detect outages, track SLOs, and debug performance issues. Prometheus + Grafana, AWS CloudWatch, Google Cloud Monitoring, Datadog, and the ELK stack are standard tools.",
   },
   // Real-time
-  {
-    id: "websocket-server",
-    label: "WebSocket Server",
-    category: "compute",
-    icon: "Radio",
-    maxQPS: 50000,
-    latencyMs: 2,
+{
+    id: "appsync",
+    label: "AppSync",
+    category: "integration",
+    icon: "Waves",
+    awsIcon: "appsync",
+    awsService: "AWS AppSync",
+    concept: "websocket-server",
+    managed: true,
+    // Source: default 10,000 requests/second per API (soft limit); subscription
+    // connections are quota'd separately.
+    maxQPS: 10000,
+    latencyMs: 20,
     scalable: true,
     stateful: true,
     description:
-      "Maintains persistent bidirectional connections for real-time communication. Essential for chat apps, live notifications, collaborative editing, and gaming. Libraries like Socket.io and managed services like AWS API Gateway WebSocket APIs or Pusher handle millions of concurrent connections, with connection-to-server mapping stored in Redis.",
+      "Managed GraphQL service with real-time subscriptions over WebSockets, pushing updates to connected clients without you running a socket fleet or tracking connections. Resolves fields against DynamoDB, Lambda, RDS, or HTTP sources and merges them into one response. The AWS-native answer for live feeds, chat, collaborative editing, and presence.",
   },
-  {
-    id: "task-scheduler",
-    label: "Task Scheduler",
-    category: "compute",
+{
+    id: "eventbridge-scheduler",
+    label: "EventBridge Scheduler",
+    category: "integration",
     icon: "Clock",
-    maxQPS: 10000,
-    latencyMs: 50,
+    awsIcon: "eventbridge-scheduler",
+    awsService: "Amazon EventBridge Scheduler",
+    concept: "task-scheduler",
+    managed: true,
+    // A scheduler is not a request-path component; this models invocation
+    // throughput rather than a published request quota.
+    maxQPS: 1000,
+    latencyMs: 10,
     scalable: true,
-    stateful: false,
+    stateful: true,
     description:
-      "Manages delayed, scheduled, and recurring background jobs with retry logic and dead-letter queues. Critical for email campaigns, report generation, data pipelines, and cleanup tasks. Celery, AWS Step Functions, Google Cloud Tasks, and Temporal are common implementations.",
+      "Managed scheduler that invokes targets on a cron expression, a fixed rate, or a one-time future timestamp, scaling to millions of independent schedules. Replaces the classic 'cron box' single point of failure and can trigger Lambda, Step Functions, SQS, and hundreds of other API targets directly. Use it for digests, retries, billing runs, and reminders.",
   },
   {
     id: "stream-processor",
@@ -426,42 +509,59 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
     description:
       "Processes continuous data streams in real-time for analytics, event processing, and ETL pipelines. Handles windowed aggregations, joins, and transformations on unbounded data. Apache Kafka Streams, Apache Flink, Spark Streaming, and AWS Kinesis Data Analytics are industry standards.",
   },
-  {
-    id: "notification-service",
-    label: "Notification Service",
-    category: "compute",
+{
+    id: "sns",
+    label: "SNS",
+    category: "integration",
     icon: "Bell",
-    maxQPS: 50000,
-    latencyMs: 100,
+    awsIcon: "sns",
+    awsService: "Amazon Simple Notification Service",
+    concept: "notification-service",
+    managed: true,
+    // Source: standard topics support 30,000 publishes/second in large regions
+    // (soft limit, varies by region).
+    maxQPS: 30000,
+    latencyMs: 10,
     scalable: true,
     stateful: false,
     description:
-      "Orchestrates multi-channel delivery of push notifications, emails, SMS, and in-app messages with priority queuing, template rendering, and delivery tracking. Firebase Cloud Messaging, AWS SNS/SES, Twilio, and OneSignal handle billions of notifications daily with device token management.",
+      "Pub/sub messaging that fans one published message out to many subscribers — SQS queues, Lambda functions, HTTP endpoints, email, and SMS. The canonical fan-out pattern is SNS in front of several SQS queues, giving each consumer its own buffered, independently-retried stream. Use it when several systems must react to the same event.",
   },
   // Advanced Storage
-  {
-    id: "graph-db",
-    label: "Graph Database",
-    category: "storage",
+{
+    id: "neptune",
+    label: "Neptune",
+    category: "database",
     icon: "Share2",
-    maxQPS: 8000,
-    latencyMs: 15,
-    scalable: true,
+    awsIcon: "neptune",
+    awsService: "Amazon Neptune",
+    concept: "graph-db",
+    managed: true,
+    // Instance-class dependent; models a mid-size instance on traversal-heavy
+    // queries rather than a published quota.
+    maxQPS: 20000,
+    latencyMs: 10,
+    scalable: false,
     stateful: true,
     description:
-      "Stores and queries highly connected data using nodes, edges, and properties — optimized for relationship traversals like friend-of-friend queries, recommendation engines, and fraud detection. Neo4j, Amazon Neptune, and JanusGraph significantly outperform relational joins for multi-hop traversals.",
+      "Managed graph database supporting Gremlin, openCypher, and SPARQL, purpose-built for highly connected data — social graphs, fraud rings, recommendations, knowledge graphs. Traversals that would be many-way self-joins in SQL become first-class operations. Reach for it when relationships are the query, not an afterthought.",
   },
-  {
-    id: "timeseries-db",
-    label: "Time-Series DB",
-    category: "storage",
+{
+    id: "timestream",
+    label: "Timestream",
+    category: "database",
     icon: "TrendingUp",
-    maxQPS: 100000,
-    latencyMs: 3,
+    awsIcon: "timestream",
+    awsService: "Amazon Timestream",
+    concept: "timeseries-db",
+    managed: true,
+    // Serverless ingestion scales automatically; figure is a modeling ceiling.
+    maxQPS: 50000,
+    latencyMs: 10,
     scalable: true,
     stateful: true,
     description:
-      "Optimized for ingesting and querying time-stamped data with built-in downsampling, retention policies, and time-windowed aggregations. Essential for monitoring metrics, IoT sensor data, and financial tick data. InfluxDB, TimescaleDB, Amazon Timestream, and Prometheus TSDB are purpose-built for this workload.",
+      "Serverless time-series database that tiers recent data in memory and older data to cheaper magnetic storage automatically, with built-in interpolation and smoothing functions. Built for IoT telemetry, application metrics, and operational analytics where every row is timestamped and queries are windowed. Note it is not available in every region — a real constraint for multi-region designs.",
   },
   {
     id: "data-warehouse",
@@ -524,17 +624,23 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
     description:
       "Prevents cascading failures by monitoring downstream service health and short-circuiting requests when failure rates exceed a threshold. Implements three states: closed (normal), open (failing, reject immediately), and half-open (testing recovery). Netflix Hystrix popularized the pattern; Resilience4j, Envoy, and Istio provide modern implementations.",
   },
-  {
-    id: "file-store",
-    label: "File Store",
+{
+    id: "efs",
+    label: "EFS",
     category: "storage",
     icon: "FolderOpen",
-    maxQPS: 10000,
-    latencyMs: 10,
+    awsIcon: "efs",
+    awsService: "Amazon Elastic File System",
+    concept: "file-store",
+    managed: true,
+    // Source: General Purpose mode supports up to 35,000 read IOPS
+    // (higher with Elastic Throughput).
+    maxQPS: 35000,
+    latencyMs: 3,
     scalable: true,
     stateful: true,
     description:
-      "Network-attached file storage providing POSIX-compatible file system semantics for shared access across multiple compute instances. Supports hierarchical directories, file locking, and concurrent reads/writes. Amazon EFS, Google Cloud Filestore, and Azure Files are managed options. Use when applications need a traditional file system interface rather than object/blob APIs.",
+      "Elastic NFS file system that many EC2 instances, containers, or Lambda functions can mount at once, growing and shrinking automatically. Use it when workloads genuinely need POSIX file semantics and shared mutable state — legacy applications, content management, shared uploads. If objects would do, S3 is cheaper and scales further.",
   },
   {
     id: "origin-shield",
@@ -598,17 +704,40 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
       "Distributes a single logical counter across multiple shards to avoid hot-key bottlenecks under massive concurrent writes. Reads aggregate across shards with eventual consistency. Critical for like counts, view counters, follower counts, and real-time voting at scale. Typically backed by Redis or purpose-built counter tables with periodic reconciliation.",
   },
   // Messaging
+{
+    id: "eventbridge",
+    label: "EventBridge",
+    category: "integration",
+    icon: "Radio",
+    awsIcon: "eventbridge",
+    awsService: "Amazon EventBridge",
+    concept: "pub-sub",
+    managed: true,
+    // Source: default PutEvents quota is 10,000 requests/second in the largest
+    // regions (soft limit, varies by region).
+    maxQPS: 10000,
+    latencyMs: 20,
+    scalable: true,
+    stateful: false,
+    description:
+      "Serverless event bus that routes events from your applications, AWS services, and SaaS partners to targets using content-based rules matched on the event payload. Unlike SNS, routing is declarative and filtering happens on message content, so adding a consumer needs no producer change. The backbone of event-driven architectures where publishers should know nothing about subscribers.",
+  },
   {
-    id: "pub-sub",
-    label: "Pub/Sub",
-    category: "messaging",
-    icon: "Megaphone",
-    maxQPS: 200000,
-    latencyMs: 5,
+    id: "step-functions",
+    label: "Step Functions",
+    category: "integration",
+    icon: "GitBranch",
+    awsIcon: "step-functions",
+    awsService: "AWS Step Functions",
+    managed: true,
+    // Source: Standard workflows start at 2,000 executions/second; Express
+    // workflows support 100,000 executions/second.
+    maxQPS: 2000,
+    latencyMs: 25,
     scalable: true,
     stateful: true,
     description:
-      "Topic-based publish/subscribe messaging where each message is broadcast to all subscribers, unlike point-to-point queues where each message is consumed by one consumer. Enables event-driven fan-out for feeds, analytics pipelines, CDC, and cross-service event propagation. Google Cloud Pub/Sub, AWS SNS, and Apache Kafka topics are canonical implementations.",
+      "Orchestrates multi-step workflows as an explicit state machine with retries, error handling, parallel branches, and human approval steps — the coordination logic lives in the workflow rather than scattered across services. Standard workflows are durable and run up to a year; Express workflows trade that for 100,000 executions/second on short, high-volume tasks. The clean answer to 'how do you manage a saga across services?'",
   },
   // Storage
   {
