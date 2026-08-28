@@ -34,18 +34,12 @@ interface ComponentPaletteProps {
 export function ComponentPalette({ onCreateCustomComponent, onComponentAdded }: ComponentPaletteProps = {}) {
   const [search, setSearch] = useState("");
   /**
-   * Per-section collapse state. 56 entries across 10 sections is too long to
-   * scroll, so the sections a design usually starts from stay open and the
-   * rest start closed. Absent key means open; only an explicit `false` closes.
-   * Session-only — not worth persisting.
+   * Per-section collapse state. Every section starts expanded so the whole
+   * catalog is visible without hunting; collapsing is there for people who
+   * want to narrow it down. Absent key means open; only an explicit `false`
+   * closes. Session-only — not worth persisting.
    */
-  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
-    containers: false,
-    analytics: false,
-    security: false,
-    observability: false,
-    pattern: false,
-  });
+  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
   const toggleCategory = useCallback((cat: string) => {
     setOpenCategories((prev) => ({ ...prev, [cat]: prev[cat] === false }));
   }, []);
