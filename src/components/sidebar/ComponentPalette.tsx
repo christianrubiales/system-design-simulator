@@ -167,7 +167,9 @@ export function ComponentPalette({ onCreateCustomComponent, onComponentAdded }: 
                     CATEGORY_STYLE[item.category as ComponentCategory] ?? CATEGORY_STYLE.compute;
                   const accent = style.icon;
                   const iconBg = style.chip;
-                  const concept = CONCEPT_LIBRARY[item.id];
+                  // Concept cards are keyed by the generic vocabulary, so AWS
+                  // services look theirs up via the concept they represent.
+                  const concept = CONCEPT_LIBRARY[item.concept ?? item.id];
                   const tipText = concept?.whenToUse[0] ?? item.description;
                   const isCustom = customIds.has(item.id);
                   return (

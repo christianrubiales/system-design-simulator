@@ -8,6 +8,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { SYSTEM_COMPONENTS } from "../src/data/components";
+import { CONCEPT_DEFAULT, PATTERN_CONCEPTS } from "../src/data/conceptMap";
+import type { Concept } from "../src/types/component";
 
 const root = process.cwd();
 const errors: string[] = [];
@@ -65,11 +67,46 @@ for (const c of SYSTEM_COMPONENTS) {
   seenIds.add(c.id);
 }
 
+// --- 5. No two concepts may share a default service ---
+const byTarget = new Map<string, string[]>();
+for (const [concept, target] of Object.entries(CONCEPT_DEFAULT)) {
+  if (target === null) continue;
+  byTarget.set(target, [...(byTarget.get(target) ?? []), concept]);
+}
+for (const [target, concepts] of byTarget) {
+  if (concepts.length > 1) {
+    errors.push(`conceptMap.ts: concepts [${concepts.join(", ")}] all map to "${target}"`);
+  }
+}
+
+// --- 6. Every non-pattern default must exist in the catalog ---
+for (const [concept, target] of Object.entries(CONCEPT_DEFAULT)) {
+  if (target !== null && !catalogIds.has(target)) {
+    errors.push(
+      `conceptMap.ts: "${concept}" maps to "${target}", which is not a catalog entry`,
+    );
+  }
+}
+
+// --- 7. Pattern concepts must be null, and only pattern concepts may be ---
+for (const [concept, target] of Object.entries(CONCEPT_DEFAULT)) {
+  const isPattern = PATTERN_CONCEPTS.has(concept as Concept);
+  if (isPattern && target !== null) {
+    errors.push(`conceptMap.ts: pattern concept "${concept}" must map to null`);
+  }
+  if (!isPattern && target === null) {
+    errors.push(`conceptMap.ts: "${concept}" maps to null but is not in PATTERN_CONCEPTS`);
+  }
+}
+
+// --- Report ---
+// Every check must run before this block, or its failures are unreachable.
 if (errors.length > 0) {
   console.error(`\ncheck-catalog: ${errors.length} problem(s)\n`);
   for (const e of errors) console.error(`  x ${e}`);
   process.exit(1);
 }
+
 // The empty `{ nodes: [], edges: [] }` default used for custom problems also
 // matches the block regex; count only solutions that actually place components.
 const populatedSolutions = solutions.filter((b) =>
