@@ -10,6 +10,8 @@ import {
 } from "@/data/serviceConfig";
 import { INSTANCE_FAMILIES } from "@/data/instanceFamilies";
 import { resolveComponentId } from "@/data/conceptMap";
+import { AWS_REGIONS, isUnavailableInRegion } from "@/data/regionAvailability";
+import { useAppStore } from "@/store/appStore";
 
 /**
  * Renders a service's configuration schema. The schema is data, so adding a
@@ -28,6 +30,10 @@ export function ConfigPanel({
   const resolved = resolveComponentId(data.componentId);
   const spec = SERVICE_CONFIG[resolved];
 
+  const region = useAppStore((s) => s.region);
+  const unavailableHere = isUnavailableInRegion(resolved, region);
+  const regionLabel = AWS_REGIONS.find((r) => r.code === region)?.label ?? region;
+
   const config = { ...defaultConfig(resolved), ...(data.config ?? {}) };
   const derived = deriveCapacity(resolved, config);
   const replicas = data.replicas ?? 1;
@@ -45,6 +51,16 @@ export function ConfigPanel({
 
   return (
     <div className="space-y-3">
+      {/* Region availability. The palette and the node itself show this via a
+          tooltip, which never opens on a touch device — the properties panel is
+          reachable everywhere, so the reason belongs here too. */}
+      {unavailableHere && (
+        <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-[11px] text-amber-200/90">
+          <span className="font-medium text-amber-300">Not available in {regionLabel}.</span>{" "}
+          You can still design with it — this would just not deploy in that region as drawn.
+        </p>
+      )}
+
       {spec?.params.map((p) => (
         <ParamControl
           key={p.id}
