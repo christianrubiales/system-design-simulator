@@ -548,15 +548,30 @@ git commit -m "feat: concept bridge mapping generic component ids to catalog ent
 **Interfaces:**
 - Produces: SVG files named by catalog service id (`ec2.svg`, `dynamodb.svg`, …), consumed by Task 5's `awsIconUrl`.
 
-- [ ] **Step 1: Confirm the source before downloading anything**
+- [ ] **Step 1: Terms — RESOLVED 2026-08-28, read before implementing**
 
-Open <https://aws.amazon.com/architecture/icons/> in a browser. Record: the current **Asset Package** download URL, its version/date label, and the exact terms text on the page governing use. Do not proceed on assumption — the spec explicitly defers this to implementation time because it cannot be verified from the repo.
+The icons are licensed **CC-BY-ND 2.0** (Attribution-NoDerivatives). Precedent: AWS's own
+<https://github.com/awslabs/aws-icons-for-plantuml> redistributes these icons in an
+open-source repo, icons under CC-BY-ND 2.0 and code under MIT — the exact split this
+plan uses. Bundling is permitted. Current pack version: **`07312026`**.
 
-If the terms as written do not permit bundling the icons in an open-source tool, **stop and report back** rather than proceeding — that changes the design (spec option C, hand-drawn icons, becomes the fallback).
+**Three hard constraints follow, and they override anything else in this task:**
+
+1. **Ship the SVGs byte-for-byte unmodified.** NoDerivatives forbids distributing an
+   altered work. Do NOT strip `<?xml>` declarations, remove generator comments, run
+   SVGO, recolor, re-proportion, or edit the markup in any way. Renaming the *file* is
+   fine — the work itself is untouched. Uniform scaling at render time is fine;
+   changing proportion or color is not.
+2. **Attribution is required**, and the notice must name CC-BY-ND 2.0 specifically —
+   not a vague reference to "AWS terms".
+3. **Service icons only — never the AWS logo or wordmark.** Architecture service icons
+   are the CC-BY-ND asset; the AWS logo and smile mark are trademarks needing written
+   permission. Do not import them, and do not display anything implying AWS sponsorship
+   or endorsement of SystemForge.
 
 - [ ] **Step 2: Write the extraction script**
 
-Create `scripts/fetch-aws-icons.ts`. It takes the downloaded ZIP as a local path argument (the pack is behind a click-through, so this is not an unattended download):
+Create `scripts/fetch-aws-icons.ts`. It takes the downloaded ZIP as a local path argument (the pack is behind a click-through, so this is not an unattended download). **It copies bytes; it never rewrites SVG content** — see Step 1 constraint 1:
 
 ```ts
 /**
@@ -582,7 +597,7 @@ const PACK_NAMES: Record<string, string> = {};
 
 **Expected archive layout** (verify against the actual zip in Step 3, do not assume): AWS ships the pack as `Asset-Package_<date>/Architecture-Service-Icons_<date>/Arch_<Category>/48/Arch_<Service-Name>_48.svg`, alongside `Architecture-Group-Icons` and `Resource-Icons` directories we do not use. So `PACK_NAMES` maps e.g. `ec2 -> "Arch_Amazon-EC2_48"`.
 
-Unzip the archive to a temp dir, glob `**/Architecture-Service-Icons*/**/48/*.svg`, index the results by basename, then for each catalog entry with an `awsIcon` look up its `PACK_NAMES` value, strip the leading `<?xml …?>` declaration and any `<!-- Generator … -->` comment, and write `public/aws-icons/${component.awsIcon}.svg`.
+Unzip the archive to a temp dir, glob `**/Architecture-Service-Icons*/**/48/*.svg`, index the results by basename, then for each catalog entry with an `awsIcon` look up its `PACK_NAMES` value and **copy the file verbatim** to `public/aws-icons/${component.awsIcon}.svg`. Use a byte copy (`copyFileSync`), not a read-transform-write — the NoDerivatives term makes any content rewrite a licensing problem, and a byte copy also makes "did we modify it?" trivially auditable.
 
 Fail loudly with the list of unmatched ids rather than writing a partial set — a missing icon is caught by `check-catalog` later, but failing here names the problem where it happened. Write `provenance.json` as:
 
@@ -609,17 +624,24 @@ The SVG files in `public/aws-icons/` are the official AWS Architecture Icons,
 © Amazon Web Services, Inc. They are **not** covered by this repository's MIT
 license and are explicitly excluded from its grant.
 
-- Source: <PACK_URL>
-- Package version: <PACK_VERSION>
+- Licensed under: **CC-BY-ND 2.0** (Attribution-NoDerivatives)
+  <https://creativecommons.org/licenses/by-nd/2.0/>
+- Source: <https://aws.amazon.com/architecture/icons/>
+- Package version: 07312026
 
-Use is governed by the AWS Architecture Icons terms and the AWS Trademark
-Guidelines. In particular the icons may be used to create architecture
-diagrams and may not be used in any manner implying AWS sponsorship or
-endorsement of this project. SystemForge is not affiliated with, endorsed by,
-or sponsored by Amazon Web Services.
+The icons are redistributed **unmodified**, as NoDerivatives requires. They are
+rendered inside a neutral container in this application; the icon artwork itself
+is never recolored, re-proportioned, or otherwise altered.
+
+SystemForge is not affiliated with, endorsed by, or sponsored by Amazon Web
+Services. No AWS logo or wordmark is used — only architecture service icons.
 
 All other files in this repository are MIT licensed. See `LICENSE`.
 ```
+
+The dual-license split here follows AWS's own
+<https://github.com/awslabs/aws-icons-for-plantuml>, which distributes these icons
+under CC-BY-ND 2.0 alongside MIT-licensed code.
 
 Add a one-line pointer to `README.md` and to `LICENSE`'s vicinity so the carve-out is discoverable.
 

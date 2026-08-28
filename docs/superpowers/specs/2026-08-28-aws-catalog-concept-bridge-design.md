@@ -150,17 +150,29 @@ Catalog total: ~45 AWS services + 9 pattern nodes + `custom` ≈ 55 entries.
 
 ### 3. Icons
 
-`scripts/fetch-aws-icons.ts` pulls the official AWS Architecture Icons pack, extracts only the services in the catalog, normalizes filenames to our service ids (`ec2.svg`, `dynamodb.svg`), strips editor metadata, and writes `public/aws-icons/` plus a `provenance.json` recording pack version, source URL, and fetch date. Output is committed; the script is re-runnable to refresh.
+`scripts/fetch-aws-icons.ts` pulls the official AWS Architecture Icons pack, extracts only the services in the catalog, renames files to our service ids (`ec2.svg`, `dynamodb.svg`), and writes `public/aws-icons/` plus a `provenance.json` recording pack version, source URL, and fetch date. SVG contents are copied **byte-for-byte** — see the licensing posture below. Output is committed; the script is re-runnable to refresh.
 
 `src/lib/awsIcon.ts` exports `awsIconUrl(component)`. Rendering is a fallback chain: `awsIcon` present renders `<img src="/aws-icons/x.svg">`; absent falls back to today's Lucide chip. Custom components and pattern nodes are therefore untouched by this change.
 
-**Licensing posture.** The icons are free to download but are **not** MIT and never become MIT. AWS permits their use to create architecture diagrams and prohibits any use implying AWS sponsorship or endorsement. They are recorded in a `NOTICE` / `THIRD-PARTY-NOTICES` file and explicitly carved out of the repo's MIT grant — the same posture taken by draw.io, Excalidraw, and Cloudcraft.
+**Licensing posture (verified 2026-08-28).** The icons are licensed **CC-BY-ND 2.0** (Attribution-NoDerivatives). They are **not** MIT and never become MIT; they are recorded in `THIRD-PARTY-NOTICES.md` and explicitly carved out of the repo's MIT grant.
 
-**Task before bundling:** confirm the current pack URL, its version, and the exact wording of its terms. This design does not assert them from memory.
+Precedent for this exact arrangement is AWS's own <https://github.com/awslabs/aws-icons-for-plantuml>, which redistributes these icons in an open-source repo under CC-BY-ND 2.0 with its code under MIT.
+
+Three constraints follow from the license and the AWS Trademark Guidelines:
+
+1. **Unmodified redistribution only.** NoDerivatives forbids shipping an altered work — no metadata stripping, no SVGO, no recoloring, no re-proportioning. Renaming a file is fine; editing its contents is not.
+2. **Attribution required**, naming CC-BY-ND 2.0 specifically.
+3. **Service icons only.** Architecture service icons are the CC-BY-ND asset; the AWS logo and wordmark are trademarks requiring written permission. Nothing may imply AWS sponsorship or endorsement of SystemForge.
+
+Constraint 1 is why the chip-plus-icon rendering below is not merely an aesthetic preference: tinting a container around an untouched icon is compliant, whereas restyling icons for dark mode would not be.
+
+Current pack version: `07312026`.
 
 ### 4. Palette and node rendering
 
-**Chip-plus-icon.** Today's nodes use tinted monochrome chips, one accent per category, tuned for the dark theme. Official AWS icons are full-color with AWS-assigned hues. Rendering 45 of them bare would override that palette. The AWS icon is therefore placed *inside* the existing category-tinted chip, so the canvas keeps its visual rhythm and per-category color coding while each node stays instantly recognizable. Reverting to bare icons is a one-line change if it reads badly in practice.
+**Chip-plus-icon.** Today's nodes use tinted monochrome chips, one accent per category, tuned for the dark theme. Official AWS icons are full-color with AWS-assigned hues. Rendering 45 of them bare would override that palette. The AWS icon is therefore placed *inside* the existing category-tinted chip, so the canvas keeps its visual rhythm and per-category color coding while each node stays instantly recognizable.
+
+This is also the licensing-safe option: the chip is our artwork, the icon inside it is untouched. Adapting the icons themselves to the theme is not available to us under NoDerivatives. Reverting to *bare* unmodified icons stays a one-line change if the chip reads badly; recoloring them does not.
 
 **Both themes.** CLAUDE.md claims dark-only with no toggle. This is stale — a working light/dark toggle shipped in `c8b456c` and `e86cbf0`, and lives in `appStore.ts` and `top-bar.tsx`. Icons must be verified in both. **Correct CLAUDE.md as part of this work.**
 
