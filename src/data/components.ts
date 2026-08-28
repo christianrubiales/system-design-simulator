@@ -3,79 +3,278 @@ import type { ComponentCategory, SystemComponent } from "@/types/component";
 export const SYSTEM_COMPONENTS: SystemComponent[] = [
   // Networking
   {
-    id: "dns",
-    label: "DNS",
+    id: "route53",
+    label: "Route 53",
     category: "networking",
     icon: "Globe",
-    maxQPS: 100000,
+    awsIcon: "route53",
+    awsService: "Amazon Route 53",
+    concept: "dns",
+    managed: true,
+    // Source: Route 53 is designed for effectively unlimited authoritative DNS
+    // query volume and carries a 100% availability SLA; the figure below is a
+    // modeling ceiling, not a published per-account quota.
+    maxQPS: 1000000,
+    // Source: resolution is typically single-digit to low-tens of ms depending on
+    // resolver caching; 10ms models an uncached authoritative lookup.
     latencyMs: 10,
     scalable: true,
     stateful: false,
     description:
-      "Domain Name System — resolves human-readable domain names (e.g., example.com) to IP addresses. Every internet request starts with a DNS lookup, making it the first hop in any system design. Services like AWS Route 53 and Google Cloud DNS also support health-checked routing and geo-based load balancing.",
+      "Managed authoritative DNS — resolves domain names to your AWS endpoints and is the first hop in almost every request path. Supports latency-based, geolocation, weighted, and failover routing with health checks, so it doubles as a coarse global traffic manager. Backs a 100% availability SLA, the only AWS service that does.",
   },
   {
-    id: "cdn",
-    label: "CDN",
+    id: "cloudfront",
+    label: "CloudFront",
     category: "networking",
     icon: "Cloudy",
-    maxQPS: 500000,
+    awsIcon: "cloudfront",
+    awsService: "Amazon CloudFront",
+    concept: "cdn",
+    managed: true,
+    // Source: CloudFront's default quota is 250,000 requests/second per
+    // distribution (raisable on request).
+    maxQPS: 250000,
+    // Source: edge-cache hits typically serve in tens of ms; a miss pays the
+    // origin round trip instead.
     latencyMs: 15,
     scalable: true,
     stateful: false,
     description:
-      "Content Delivery Network — caches static assets (images, JS, CSS, videos) at edge locations close to users, reducing latency from hundreds of milliseconds to low double digits. Essential for any read-heavy or media-heavy system serving a global audience. Examples include Amazon CloudFront, Google Cloud CDN, and Cloudflare.",
+      "Global CDN that caches static and dynamic content at hundreds of edge locations, cutting latency for distant users and shielding the origin from repeat traffic. Terminates TLS at the edge, integrates with WAF and Shield for DDoS protection, and can run logic at the edge via CloudFront Functions or Lambda@Edge. Origin Shield adds a mid-tier cache to further collapse origin load.",
   },
   {
-    id: "load-balancer",
-    label: "Load Balancer",
+    id: "alb",
+    label: "ALB",
     category: "networking",
     icon: "Network",
+    awsIcon: "alb",
+    awsService: "Application Load Balancer",
+    concept: "load-balancer",
+    managed: true,
+    // Source: ALB scales automatically with no documented hard RPS ceiling;
+    // capacity is billed via LCUs. Figure is a modeling ceiling.
+    maxQPS: 200000,
+    // Source: ALB adds low-single-digit ms of processing per request.
+    latencyMs: 5,
+    scalable: true,
+    stateful: false,
+    description:
+      "Layer 7 load balancer that routes HTTP/HTTPS by path, host, header, or query string across target groups of EC2 instances, containers, IPs, or Lambda functions. Handles TLS termination, sticky sessions, and health checks, and is the default front door for web and API tiers. Choose it over NLB whenever routing decisions depend on request content.",
+  },
+  {
+    id: "nlb",
+    label: "NLB",
+    category: "networking",
+    icon: "Network",
+    awsIcon: "nlb",
+    awsService: "Network Load Balancer",
+    // No `concept`: the generic vocabulary has one "load-balancer", mapped to ALB.
+    managed: true,
+    // Source: AWS documents NLB as capable of handling tens of millions of
+    // requests per second; figure is a conservative modeling ceiling.
     maxQPS: 1000000,
+    // Source: NLB operates at layer 4 and adds well under a millisecond.
     latencyMs: 1,
     scalable: true,
     stateful: false,
     description:
-      "Distributes incoming traffic across multiple backend servers using algorithms like round-robin, least-connections, or weighted routing. Prevents any single server from becoming a bottleneck and enables zero-downtime deployments via rolling updates. AWS ALB/NLB, Google Cloud Load Balancing, and HAProxy are common choices.",
+      "Layer 4 load balancer for TCP, UDP, and TLS traffic, built for extreme throughput and ultra-low latency with static IPs per Availability Zone. Preserves the client source IP and handles millions of requests per second, making it the right choice for non-HTTP protocols, gaming, IoT, and latency-critical paths. Cannot route on request content — use ALB when you need that.",
   },
   {
     id: "api-gateway",
     label: "API Gateway",
     category: "networking",
     icon: "Router",
-    maxQPS: 50000,
-    latencyMs: 10,
+    awsIcon: "api-gateway",
+    awsService: "Amazon API Gateway",
+    concept: "api-gateway",
+    managed: true,
+    // Source: default account-level throttle is 10,000 requests/second across
+    // all APIs in a region (soft limit, raisable via a quota increase).
+    maxQPS: 10000,
+    // Source: REST API adds roughly 10-30ms overhead; HTTP APIs are lower.
+    latencyMs: 15,
     scalable: true,
     stateful: false,
     description:
-      "Single entry point for all API requests — handles routing, authentication, rate limiting, request transformation, and protocol translation. Use it when you have multiple microservices behind a unified API surface. AWS API Gateway, Kong, and Google Cloud Apigee are popular managed options. Note that managed offerings enforce account-level quotas — AWS API Gateway defaults to 10,000 RPS per account — so the 50K QPS figure here reflects a self-hosted or scaled-out gateway tier.",
+      "Managed front door for HTTP, REST, and WebSocket APIs — handles routing, authorization, throttling, request/response transformation, and caching without running servers. Integrates natively with Lambda, and enforces per-client rate limits via usage plans and API keys. Note the 10,000 RPS default account throttle: at higher scale you either raise the quota or front your services with ALB instead.",
   },
   {
-    id: "rate-limiter",
-    label: "Rate Limiter",
+    id: "vpc",
+    label: "VPC",
     category: "networking",
-    icon: "ShieldAlert",
-    maxQPS: 80000,
+    icon: "Network",
+    awsIcon: "vpc",
+    awsService: "Amazon Virtual Private Cloud",
+    managed: true,
+    // VPC is a network boundary, not a request-processing hop: it adds no
+    // measurable latency and imposes no throughput ceiling of its own.
+    maxQPS: 1000000,
+    latencyMs: 0,
+    scalable: true,
+    stateful: false,
+    description:
+      "The isolated virtual network your resources run in, divided into public and private subnets across Availability Zones. Security groups and network ACLs control traffic; route tables decide what can reach the internet. In an interview, showing private subnets for databases and app tiers — with only load balancers public — is the baseline expectation for a secure design.",
+  },
+  {
+    id: "nat-gateway",
+    label: "NAT Gateway",
+    category: "networking",
+    icon: "Router",
+    awsIcon: "nat-gateway",
+    awsService: "NAT Gateway",
+    managed: true,
+    // Source: scales from 5 Gbps to 100 Gbps and supports up to 55,000
+    // simultaneous connections per unique destination.
+    maxQPS: 55000,
     latencyMs: 1,
     scalable: true,
     stateful: true,
     description:
-      "Throttles requests per client, IP, or API key to protect downstream services from abuse, DDoS attacks, and traffic spikes. Typically implemented using token bucket or sliding window algorithms backed by Redis. Often built into API gateways like Kong, enforced at the edge via AWS WAF, or implemented as a standalone service.",
+      "Lets resources in private subnets reach the internet for outbound calls — package installs, third-party APIs, webhooks — while blocking unsolicited inbound connections. Deploy one per Availability Zone so a zone failure does not sever egress for the others. Frequently a surprise line item on the bill, since it charges both hourly and per GB processed.",
+  },
+  {
+    id: "privatelink",
+    label: "PrivateLink",
+    category: "networking",
+    icon: "Lock",
+    awsIcon: "privatelink",
+    awsService: "AWS PrivateLink",
+    managed: true,
+    // Endpoint throughput scales with the underlying VPC endpoint; no published
+    // per-endpoint RPS ceiling. Figure is a modeling ceiling.
+    maxQPS: 100000,
+    latencyMs: 1,
+    scalable: true,
+    stateful: false,
+    description:
+      "Exposes a service privately through an interface VPC endpoint so traffic never traverses the public internet, an internet gateway, or a NAT device. Used to reach AWS services, SaaS partners, or your own services across VPC and account boundaries. The standard answer when an interviewer asks how services in separate VPCs talk without public exposure.",
+  },
+  {
+    id: "global-accelerator",
+    label: "Global Accelerator",
+    category: "networking",
+    icon: "Zap",
+    awsIcon: "global-accelerator",
+    awsService: "AWS Global Accelerator",
+    managed: true,
+    // Throughput follows the backing endpoints; the accelerator itself is not
+    // the documented bottleneck. Figure is a modeling ceiling.
+    maxQPS: 1000000,
+    // Source: routes over the AWS backbone from the nearest edge, typically
+    // improving latency versus public-internet paths.
+    latencyMs: 2,
+    scalable: true,
+    stateful: false,
+    description:
+      "Gives you two static anycast IPs that admit traffic at the nearest AWS edge and carry it over the AWS backbone to healthy endpoints in one or more regions. Improves latency and failover speed for TCP/UDP workloads, and unlike DNS-based failover it reroutes in seconds without waiting for TTLs to expire. Pair it with NLB for global, latency-sensitive, non-HTTP traffic.",
+  },
+  {
+    id: "waf",
+    label: "WAF",
+    category: "security",
+    icon: "ShieldAlert",
+    awsIcon: "waf",
+    awsService: "AWS WAF",
+    concept: "rate-limiter",
+    managed: true,
+    // Source: WAF inspects requests inline at CloudFront/ALB/API Gateway and
+    // scales with them; rate-based rules count requests per 5-minute window.
+    maxQPS: 250000,
+    latencyMs: 1,
+    scalable: true,
+    stateful: true,
+    description:
+      "Web application firewall that filters requests at CloudFront, ALB, or API Gateway before they reach your application. Rate-based rules throttle abusive clients by IP; managed rule groups cover the OWASP Top 10, bad bots, and known-bad inputs. This is where request-level rate limiting belongs in an AWS design, rather than a hand-rolled token bucket in the app tier.",
   },
   // Compute
   {
-    id: "app-server",
-    label: "App Server",
+    id: "ec2",
+    label: "EC2",
     category: "compute",
     icon: "Server",
     awsIcon: "ec2",
     awsService: "Amazon Elastic Compute Cloud",
+    concept: "app-server",
+    managed: false,
+    // Per-instance application throughput is workload-dependent; 5,000 QPS
+    // models a mid-size instance serving a light API workload. Scale with
+    // replicas rather than raising this number.
     maxQPS: 5000,
     latencyMs: 20,
     scalable: true,
     stateful: false,
     description:
-      "Stateless application server that executes core business logic and serves API requests. Designed to scale horizontally — spin up more instances behind a load balancer to handle increased traffic. Runs on AWS EC2/ECS, Google Compute Engine, or containerized in Kubernetes pods.",
+      "Virtual machines you control end to end — OS, runtime, and long-running processes. Scale horizontally behind an ALB with an Auto Scaling group, and pick the instance family to match the workload: t-series for burstable, m for balanced, c for compute-bound, r for memory-bound, g/p for GPU. Unlike Lambda or Fargate, you manage patching and capacity, which is the tradeoff to name in an interview.",
+  },
+  {
+    id: "lambda",
+    label: "Lambda",
+    category: "compute",
+    icon: "Zap",
+    awsIcon: "lambda",
+    awsService: "AWS Lambda",
+    managed: true,
+    // Source: default 1,000 concurrent executions per region (soft limit).
+    // At ~50ms average duration that is roughly 20,000 requests/second.
+    maxQPS: 20000,
+    // Source: warm invocations add single-digit ms; cold starts add far more,
+    // which is the tradeoff worth naming.
+    latencyMs: 25,
+    scalable: true,
+    stateful: false,
+    description:
+      "Runs code on demand with no servers to manage, scaling from zero to thousands of concurrent executions automatically and billing only for time used. Ideal for event-driven work, spiky traffic, and glue between services. The interview tradeoffs are cold starts on latency-critical paths, a 15-minute maximum execution time, and the default 1,000-concurrency account limit.",
+  },
+  {
+    id: "fargate",
+    label: "Fargate",
+    category: "compute",
+    icon: "Box",
+    awsIcon: "fargate",
+    awsService: "AWS Fargate",
+    managed: true,
+    // Throughput is per-task and workload-dependent; models a mid-size task.
+    maxQPS: 5000,
+    latencyMs: 20,
+    scalable: true,
+    stateful: false,
+    description:
+      "Serverless compute for containers — you specify CPU and memory per task and AWS runs it without you provisioning or patching EC2 instances. Works as a launch type under both ECS and EKS. Choose it when you want container packaging without cluster capacity management, and accept a higher per-vCPU price than self-managed EC2 in exchange.",
+  },
+  // Containers
+  {
+    id: "ecs",
+    label: "ECS",
+    category: "containers",
+    icon: "Box",
+    awsIcon: "ecs",
+    awsService: "Amazon Elastic Container Service",
+    managed: true,
+    // Cluster throughput scales with task count; models an aggregate service.
+    maxQPS: 50000,
+    latencyMs: 20,
+    scalable: true,
+    stateful: false,
+    description:
+      "AWS-native container orchestrator that schedules Docker containers onto EC2 or Fargate capacity, with built-in service discovery, load balancer integration, and rolling deployments. Simpler to operate than Kubernetes and deeply integrated with IAM and CloudWatch. Reach for it when you want containers without the operational surface of EKS.",
+  },
+  {
+    id: "eks",
+    label: "EKS",
+    category: "containers",
+    icon: "Box",
+    awsIcon: "eks",
+    awsService: "Amazon Elastic Kubernetes Service",
+    managed: true,
+    // Cluster throughput scales with node and pod count; models an aggregate.
+    maxQPS: 50000,
+    latencyMs: 20,
+    scalable: true,
+    stateful: false,
+    description:
+      "Managed Kubernetes control plane, so you get the full Kubernetes API, ecosystem, and portability without running etcd or masters yourself. Worth its extra complexity when you need Kubernetes-specific tooling, multi-cloud portability, or an existing Helm-based platform. If the answer is just 'run containers on AWS', ECS is the lower-overhead choice.",
   },
   {
     id: "auth-service",

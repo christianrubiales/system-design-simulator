@@ -30,7 +30,8 @@ const PACK_NAMES: Record<string, string> = {
   // Networking
   route53: "Arch_Amazon-Route-53_48",
   cloudfront: "Arch_Amazon-CloudFront_48",
-  elb: "Arch_Elastic-Load-Balancing_48",
+  alb: "Res_Elastic-Load-Balancing_Application-Load-Balancer_48",
+  nlb: "Res_Elastic-Load-Balancing_Network-Load-Balancer_48",
   "api-gateway": "Arch_Amazon-API-Gateway_48",
   vpc: "Arch_Amazon-Virtual-Private-Cloud_48",
   "nat-gateway": "Res_Amazon-VPC_NAT-Gateway_48",

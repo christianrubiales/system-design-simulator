@@ -8,7 +8,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { SYSTEM_COMPONENTS } from "../src/data/components";
-import { CONCEPT_DEFAULT, PATTERN_CONCEPTS } from "../src/data/conceptMap";
+import { CONCEPT_DEFAULT, PATTERN_CONCEPTS, resolveComponentId } from "../src/data/conceptMap";
 import type { Concept } from "../src/types/component";
 
 const root = process.cwd();
@@ -30,8 +30,11 @@ for (const [file, src] of [
   ["conceptLibrary.ts", conceptSrc],
 ] as const) {
   for (const m of src.matchAll(/componentId: "([^"]+)"/g)) {
-    if (!catalogIds.has(m[1])) {
-      errors.push(`${file}: componentId "${m[1]}" does not resolve to a catalog entry`);
+    // Content speaks the generic vocabulary; the bridge translates it.
+    const resolved = resolveComponentId(m[1]);
+    if (!catalogIds.has(resolved)) {
+      const via = resolved === m[1] ? "" : ` (via concept bridge -> "${resolved}")`;
+      errors.push(`${file}: componentId "${m[1]}"${via} does not resolve to a catalog entry`);
     }
   }
 }
@@ -41,13 +44,18 @@ const solutions = [
   ...problemsSrc.matchAll(/referenceSolution:\s*\{\s*nodes:\s*\[([\s\S]*?)\]/g),
 ];
 solutions.forEach((block, i) => {
-  const ids = [...block[1].matchAll(/componentId: "([^"]+)"/g)].map((m) => m[1]);
-  const seen = new Set<string>();
-  for (const id of ids) {
-    if (seen.has(id)) {
-      errors.push(`problems.ts: reference solution #${i} uses "${id}" twice`);
+  // Compare RESOLVED ids: two different generic ids collapsing onto one AWS
+  // service is the failure that renders duplicate identical nodes.
+  const raw = [...block[1].matchAll(/componentId: "([^"]+)"/g)].map((m) => m[1]);
+  const seen = new Map<string, string>();
+  for (const id of raw) {
+    const resolved = resolveComponentId(id);
+    const prior = seen.get(resolved);
+    if (prior !== undefined) {
+      const how = prior === id ? `"${id}" twice` : `"${prior}" and "${id}" both -> "${resolved}"`;
+      errors.push(`problems.ts: reference solution #${i} uses ${how}`);
     }
-    seen.add(id);
+    seen.set(resolved, id);
   }
 });
 

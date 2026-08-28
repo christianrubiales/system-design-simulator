@@ -5,6 +5,7 @@
   "fetchedAt": "2026-08-28",
   "note": "Icons are redistributed unmodified, as NoDerivatives requires.",
   "icons": [
+    "alb",
     "api-gateway",
     "app-mesh",
     "appconfig",
@@ -22,7 +23,6 @@
     "efs",
     "eks",
     "elasticache",
-    "elb",
     "eventbridge",
     "eventbridge-scheduler",
     "fargate",
@@ -36,6 +36,7 @@
     "msk",
     "nat-gateway",
     "neptune",
+    "nlb",
     "opensearch",
     "privatelink",
     "rds",

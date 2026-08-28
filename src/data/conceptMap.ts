@@ -32,12 +32,12 @@ export const PATTERN_CONCEPTS: ReadonlySet<Concept> = new Set<Concept>([
  * once the catalog holds AWS services, so any breakage is unambiguously data.
  */
 export const CONCEPT_DEFAULT: Record<Concept, string | null> = {
-  dns: "dns",
-  cdn: "cdn",
-  "load-balancer": "load-balancer",
+  dns: "route53",
+  cdn: "cloudfront",
+  "load-balancer": "alb",
   "api-gateway": "api-gateway",
-  "rate-limiter": "rate-limiter",
-  "app-server": "app-server",
+  "rate-limiter": "waf",
+  "app-server": "ec2",
   "auth-service": "auth-service",
   "sql-db": "sql-db",
   "nosql-db": "nosql-db",
