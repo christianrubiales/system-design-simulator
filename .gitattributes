@@ -1,0 +1,4 @@
+# AWS Architecture Icons are redistributed unmodified under CC-BY-ND 2.0
+# (see THIRD-PARTY-NOTICES.md). Disable all line-ending normalization so the
+# working copy stays byte-identical to the official pack on every platform.
+public/aws-icons/*.svg -text
