@@ -34,7 +34,7 @@ Build real architectures on a canvas · simulate production traffic · get score
 
 Most system design prep is passive — reading articles, watching videos, memorizing diagrams. **SystemForge makes it active.**
 
-You drag real infrastructure components onto a canvas, wire them into an architecture, run production-scale traffic through it, and get scored across the five dimensions an interviewer actually evaluates. Think of it as a **flight simulator for system design interviews** — a safe place to fail, iterate, and build the intuition that reading alone can't give you.
+You drag real AWS services onto a canvas, wire them into an architecture, run production-scale traffic through it, see the monthly bill, and get scored across the five dimensions an interviewer actually evaluates. Think of it as a **flight simulator for system design interviews** — a safe place to fail, iterate, and build the intuition that reading alone can't give you.
 
 It runs entirely in your browser. No account, no backend, no data leaves your machine.
 
@@ -47,8 +47,9 @@ It runs entirely in your browser. No account, no backend, no data leaves your ma
 ## Table of Contents
 
 - [Features](#-features)
-  - [35 Infrastructure Components](#35-infrastructure-components)
+  - [46 AWS Services + 9 Patterns](#46-aws-services--9-architectural-patterns)
   - [Traffic Simulation](#traffic-simulation)
+  - [Cost Estimates](#-cost-estimates)
   - [Connectivity-Aware Scoring](#connectivity-aware-scoring)
   - [Interview Practice Mode](#interview-practice-mode)
   - [Concept Library & Trade-off Cards](#concept-library--trade-off-cards)
@@ -74,27 +75,47 @@ It runs entirely in your browser. No account, no backend, no data leaves your ma
 
 <br/>
 
-### 35 Infrastructure Components
+### 46 AWS Services + 9 Architectural Patterns
 
-A complete toolbox for any architecture — **35 production-grade components** across five categories, each with verified throughput and latency specs, plus a custom block you can rename to anything.
+A real AWS toolbox — **46 services** with their official architecture icons, plus **9 pattern nodes** for the things that are techniques rather than products.
 
-| Category | Components |
+| Category | Services |
 |----------|-----------|
-| **Networking** | DNS · CDN · Load Balancer · API Gateway · Rate Limiter · Reverse Proxy · Origin Shield |
-| **Compute** | App Server · Auth Service · WebSocket Server · Task Scheduler · Stream Processor · Notification Service |
-| **Storage** | SQL · NoSQL · Cache/Redis · Object Storage · Search/ES · Graph DB · Time-Series DB · Data Warehouse · File Store · Vector DB · Geospatial Index |
-| **Messaging** | Message Queue · Pub/Sub |
-| **Infrastructure** | Service Mesh · Monitoring · Service Discovery · Distributed Lock · Circuit Breaker · Coordination Service · ID Generator · Sharded Counter · Config Service |
-| **Special** | Custom Component (double-click to rename) |
+| **Networking** | Route 53 · CloudFront · ALB · NLB · API Gateway · VPC · NAT Gateway · PrivateLink · Global Accelerator |
+| **Compute** | EC2 · Lambda · Fargate |
+| **Containers** | ECS · EKS |
+| **Database** | RDS · Aurora · DynamoDB · ElastiCache · DocumentDB · Neptune · Timestream |
+| **Storage** | S3 · EFS |
+| **Integration** | SQS · SNS · EventBridge · EventBridge Scheduler · Step Functions · AppSync · App Mesh |
+| **Analytics** | Kinesis · Firehose · MSK · OpenSearch · Redshift · Athena · Glue |
+| **Security** | WAF · Cognito · IAM · Secrets Manager · KMS |
+| **Observability** | CloudWatch · X-Ray · Cloud Map · AppConfig |
+| **Patterns** | Circuit Breaker · ID Generator · Sharded Counter · Distributed Lock · Coordination Service · Geospatial Index · Reverse Proxy · Origin Shield · Vector DB |
 
-Every component ships with **benchmark-backed specs**, cross-checked against official docs:
+Pattern nodes exist because rate limiting, sharded counters, and distributed locks are *techniques* — in AWS you enable API Gateway throttling or use a DynamoDB conditional write, not drag a box called "Rate Limiter".
 
-| Component | Max QPS | Latency | | Component | Max QPS | Latency |
-|---|---|---|---|---|---|---|
-| Load Balancer | 1,000,000 | 1 ms | | Kafka | 100,000 | 5 ms |
-| CDN | 500,000 | 15 ms | | Elasticsearch | 20,000 | 10 ms |
-| Cache / Redis | 100,000 | 1 ms | | Object Storage (S3) | 25,000 | 75 ms |
-| NoSQL (DynamoDB) | 50,000 | 3 ms | | SQL Database | 10,000 | 8 ms |
+**Every service carries real AWS figures**, each with a source comment in the code. Some are exact published quotas rather than estimates:
+
+| Service | Capacity | Basis |
+|---|---|---|
+| DynamoDB | 40,000 units | AWS default table quota — 1 unit *is* 1 req/s by definition |
+| Kinesis | 1,000 records/s per shard | Documented AWS limit |
+| SQS FIFO | 300 msg/s | Documented cap (3,000 batched) |
+| API Gateway | 10,000 req/s | Default account throttle |
+| S3 | 5,500 GET/s per prefix | AWS quota — which is why key design matters |
+| EC2 | vCPU × 2,500 req/s | **Estimate**, stated as such in the UI |
+
+You configure them like real infrastructure — instance family and size, DynamoDB capacity mode, ElastiCache hit rate, S3 storage class — and capacity is derived from **published vCPU and memory specs**, not invented numbers.
+
+#### Connection rules
+
+Wire Route 53 straight into RDS and the edge turns amber with a reason: *"RDS expects database traffic."* Services declare what traffic they accept and emit, and connections are validated against that.
+
+It **warns rather than blocks**. A hand-authored rule set will be wrong sometimes, and a validator that's wrong *and* blocking leaves you unable to draw the design you intend.
+
+#### Region awareness
+
+Pick from 34 AWS regions. Services unavailable there are flagged — DocumentDB isn't in N. California, Neptune isn't in Milan — and the region scales the cost estimate.
 
 ---
 
@@ -108,13 +129,17 @@ Every component ships with **benchmark-backed specs**, cross-checked against off
 
 Push 1K–500K requests/sec through your design and watch it behave like a real system:
 
+- **Reads and writes flow separately**, seeded from the problem's own stated requirements. A cache serves reads at its hit rate; **writes always reach the database**. That single distinction is what turns "we'll put Redis in front" from hand-waving into arithmetic.
 - **Correct fan-in accumulation** via Kahn's topological sort — QPS adds up exactly where it should.
-- **Smart traffic splitting** — load balancers split evenly; other components fan out 100% to each child.
-- **Per-node metrics** — QPS, utilization %, latency, and status (healthy / warning / critical).
-- **Honest throughput** — reported throughput is capped at offered load and collapses through saturated nodes. No phantom over-capacity numbers.
+- **Traffic splitting** — load balancers divide across targets; when a node fans out to both a cache and a datastore, reads split by hit rate and only the misses reach the store.
+- **Read replicas add read capacity only** — every write still hits the single primary.
+- **p50 and p99 latency**, with the tail widening as a node approaches saturation.
+- **Honest throughput** — capped at offered load and collapsing through saturated nodes. No phantom over-capacity numbers.
 - **Disconnected-node aware** — a stray, unwired node never steals traffic from the real request path.
 - **Async-edge aware** — connections marked async are excluded from user-facing latency.
 - **Bottleneck & cascading-failure** visualization, plus cycle detection that separates true cycle members from nodes merely downstream of one.
+
+See [How the Simulation Works](#-how-the-simulation-works) for the model and its declared limits.
 
 ---
 
@@ -128,17 +153,22 @@ Push 1K–500K requests/sec through your design and watch it behave like a real 
 
 SystemForge scores the **wired request path**, not a parts bin. Drop a cache on the canvas but never connect it, and you get no credit — with feedback telling you exactly why. A pile of disconnected components scores *"Needs Work,"* just like it would in a real interview.
 
+Scoring matches **architectural roles**, not service names: choose Aurora instead of RDS, or Fargate instead of EC2, and you still get credit for having a relational database or an application tier.
+
 Five categories, each capped at exactly **20 points**:
 
 | Category | What it checks |
 |----------|---------------|
 | **Scalability** | Load balancing, horizontal scaling, caching, async processing |
 | **Availability** | No SPOFs, replica redundancy, monitoring, overload protection |
-| **Latency** | CDN usage, cache-before-DB patterns, minimal hop count |
-| **Cost Efficiency** | Right-sized components, polyglot persistence, no waste |
+| **Latency** | CDN in front of origins, cache-before-DB patterns, minimal hop count |
+| **Cost Efficiency** | Measured over-provisioning, per-request billing on bulk traffic, idle resources |
 | **Trade-offs** | Read/write separation, defense in depth, architecture breadth |
 
+Cost is scored on **measured waste**, not dollar totals — a URL shortener and a video platform have wildly different legitimate budgets, but "this node is at 3% utilization" and "API Gateway is carrying 200k req/s where an ALB would cost orders of magnitude less" are comparable across every problem.
+
 **Verdicts:** Needs Work `<31` · Decent `<51` · Good `<71` · Excellent `<86` · Architect Level `86+`
+
 
 ---
 
@@ -363,7 +393,7 @@ src/
 │   ├── dialogs/          # ModalShell + Save / Load / Confirm / Support / Create
 │   ├── interview/        # Interview bar, phase guides, start dialog
 │   ├── layout/           # AppShell, TopBar, SupportFAB
-│   ├── panel/            # Right panel: Props · Simulate · Score · Capacity · Trade-offs
+│   ├── panel/            # Right panel: Props · Simulate · Score · Capacity · Cost · Trade-offs
 │   ├── sidebar/          # Component palette, problem selector, learning path
 │   └── ui/               # Base UI primitives, Toast
 ├── data/
@@ -379,7 +409,8 @@ src/
 │   ├── scorer.ts         # Orchestrator — builds the shared scoring graph
 │   └── rules/            # 5 rule modules, 20 pts each
 ├── store/                # Zustand stores (canvas, app, interview, saved designs, …)
-├── lib/                  # exportCanvas, loadReference, icons, utils
+├── lib/                  # cost estimation, exportCanvas, loadReference, icons
+├── scripts/              # Generators: AWS icons, pricing, region data, catalog checks
 └── types/                # Shared TypeScript interfaces
 ```
 
