@@ -371,6 +371,10 @@ If SystemForge helped you prep for a system design interview, a chai goes a long
 
 [MIT](LICENSE) © [@vijaygupta18](https://github.com/vijaygupta18)
 
+The AWS Architecture Icons in `public/aws-icons/` are © Amazon Web Services and
+licensed separately under CC-BY-ND 2.0 — see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+SystemForge is not affiliated with or endorsed by AWS.
+
 <div align="center">
 <br/>
 
