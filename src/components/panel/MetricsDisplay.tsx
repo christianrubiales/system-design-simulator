@@ -131,10 +131,28 @@ export function MetricsDisplay() {
                   <div>
                     <p className="metric-label text-[10px]">Latency</p>
                     <p className="font-mono text-xs tabular-nums text-zinc-200">
-                      {m.latencyMs.toFixed(0)}ms
+                      {m.latencyMs.toFixed(0)}
+                      <span className="text-zinc-500">
+                        {" / "}
+                        {m.latencyP99.toFixed(0)}ms
+                      </span>
                     </p>
+                    <p className="text-[10px] text-zinc-600">p50 / p99</p>
                   </div>
                 </div>
+
+                {/* Read/write split — writes never reach a cache, so this is
+                    where "we'll put Redis in front" stops being hand-waving. */}
+                {m.incomingQPS > 0 && (
+                  <p className="mt-1.5 text-[11px] text-zinc-500">
+                    {abbrev(m.incomingReads)} reads · {abbrev(m.incomingWrites)} writes
+                    {m.absorbedReads > 0 && (
+                      <span className="text-cyan-400">
+                        {" "}· serves {abbrev(m.absorbedReads)} reads itself
+                      </span>
+                    )}
+                  </p>
+                )}
               </div>
             );
           })}

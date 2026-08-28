@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Play, Loader2 } from "lucide-react";
 import { useSimulationStore } from "@/store/simulationStore";
+import { useAppStore } from "@/store/appStore";
+import { getProblemById } from "@/data/problems";
 
 const PRESETS = [
   { label: "Light", value: 1000 },
@@ -20,6 +22,15 @@ interface SimulationControlsProps {
 export function SimulationControls({ onSimulate }: SimulationControlsProps) {
   const config = useSimulationStore((s) => s.config);
   const setConfig = useSimulationStore((s) => s.setConfig);
+  const selectedProblemId = useAppStore((s) => s.selectedProblemId);
+  const problem = getProblemById(selectedProblemId);
+  // The problem's own requirements define the expected mix.
+  const problemRatio = (() => {
+    if (!problem) return null;
+    const { readsPerSec, writesPerSec } = problem.requirements;
+    const sum = readsPerSec + writesPerSec;
+    return sum > 0 ? Math.round((readsPerSec / sum) * 100) : null;
+  })();
   const isRunning = useSimulationStore((s) => s.isRunning);
 
   return (
@@ -61,6 +72,47 @@ export function SimulationControls({ onSimulate }: SimulationControlsProps) {
             step={100}
             className=""
           />
+        </div>
+
+        {/* Read/write mix — seeded from the selected problem's stated
+            readsPerSec / writesPerSec, so the control is tied to the brief
+            rather than being a free-floating knob. Caches serve reads only, so
+            this ratio decides how much load ever reaches the database. */}
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <label className="text-xs text-zinc-400">Read / write mix</label>
+            <span className="font-mono text-xs text-cyan-500">
+              {Math.round(config.readRatio * 100)}% reads
+            </span>
+          </div>
+          <Slider
+            aria-label="Read ratio"
+            value={[Math.round(config.readRatio * 100)]}
+            onValueChange={(v) =>
+              setConfig({ readRatio: (Array.isArray(v) ? v[0] : v) / 100 })
+            }
+            min={0}
+            max={100}
+            step={1}
+          />
+          <p className="mt-1 text-[11px] text-zinc-500">
+            {problemRatio !== null ? (
+              <>
+                This problem states {problemRatio}% reads.{" "}
+                {Math.abs(Math.round(config.readRatio * 100) - problemRatio) > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setConfig({ readRatio: problemRatio / 100 })}
+                    className="text-cyan-400 underline-offset-2 hover:underline"
+                  >
+                    Reset
+                  </button>
+                )}
+              </>
+            ) : (
+              "Reads can be served by a cache; writes always reach the database."
+            )}
+          </p>
         </div>
 
         {/* Duration slider removed: the simulation engine performs a single-snapshot

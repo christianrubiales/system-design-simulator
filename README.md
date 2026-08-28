@@ -55,6 +55,7 @@ It runs entirely in your browser. No account, no backend, no data leaves your ma
   - [Learning Path](#learning-path)
   - [Mobile & Tablet](#mobile--tablet)
 - [35 Design Problems](#-35-design-problems)
+- [How the Simulation Works](#-how-the-simulation-works)
 - [Quick Start](#-quick-start)
 - [Keyboard Shortcuts](#keyboard-shortcuts)
 - [Tech Stack](#-tech-stack)
@@ -251,6 +252,44 @@ Every problem includes scale requirements (QPS, storage, latency), constraints, 
 | 35 | CI/CD Pipeline | Medium | Build DAGs, artifact storage, canary deploys |
 
 </details>
+
+---
+
+## 🔬 How the Simulation Works
+
+The simulator computes a **steady-state snapshot**, not a time series. It answers *"at this sustained load, where does this design break?"* — one pass, deterministic, no clock.
+
+### Traffic flows as reads and writes
+
+Load is split into two channels, seeded from the problem's own `readsPerSec` / `writesPerSec` and adjustable in the Simulate panel. This matters because the two are not interchangeable:
+
+| Node | What it does to traffic |
+|------|-------------------------|
+| **Cache** (ElastiCache, CloudFront) | Serves `reads × hitRate`. **Writes always pass through** — a cache can never absorb a write. |
+| **Database with read replicas** | Replicas add **read** capacity only; every write still hits the single primary. |
+| **Load balancer** (ALB, NLB, API Gateway) | Divides traffic evenly across its targets. |
+| **Everything else** | Passes both channels through to each child. |
+
+When a node fans out to *both* a cache and a datastore — the shape almost every real diagram uses — reads split by the cache's hit rate, and only the misses reach the store. That's the lever the tool exists to teach: at an 85% hit rate your database sees 15% of reads, and that ratio is usually the difference between one instance and ten.
+
+### Capacity comes from real instance specs
+
+A node's ceiling is `vCPU × throughput-per-vCPU × instances`, where vCPU and memory are **published AWS figures** for the chosen instance type. Some values are exact AWS quotas rather than estimates — a DynamoDB capacity unit is one request per second by definition, a Kinesis shard is 1,000 records per second, an SQS FIFO queue is capped at 300 messages per second. Where a number *is* estimated, the properties panel says so and states the assumption.
+
+### Latency reports p50 and p99
+
+Tail latency comes from queueing, so the gap between p50 and p99 widens as a node approaches saturation rather than being a fixed multiple. Async hops — queues, notifications, monitoring — are excluded from user-facing latency.
+
+### Known limits
+
+Being explicit about what this model **cannot** show:
+
+- **No time dimension.** A queue cannot absorb a burst and drain it, because there are no ticks to drain across. Queues are modelled as capacity, not as buffers.
+- **No autoscaling response.** Capacity is whatever you configured; nothing reacts to sustained load.
+- **No retry amplification.** Retry storms are a feedback loop — load causes failures, failures cause retries, retries cause load — and a snapshot flattens that into a constant, which teaches the arithmetic without the lesson.
+- **Throughput is not linear in vCPU**, and databases usually saturate on IO or connections before CPU. Derived capacity is a teaching estimate, not a benchmark.
+
+**Time-stepped simulation** — queue backlog accumulating and draining, autoscaling reacting, retry storms — is a planned follow-up. It is deliberately not bolted onto the snapshot model, because every invariant the current engine gets right (topological ordering, cycle handling, disconnected subgraphs, throughput capping) would have to be re-established per tick.
 
 ---
 

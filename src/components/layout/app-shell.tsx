@@ -122,7 +122,12 @@ export function AppShell() {
     useSimulationStore.getState().setRunning(true);
 
     setTimeout(() => {
-      const result = runSimulation(componentNodes, edges, config.requestsPerSec);
+      const result = runSimulation(
+        componentNodes,
+        edges,
+        config.requestsPerSec,
+        config.readRatio,
+      );
 
       const updates = new Map<string, Record<string, unknown>>();
       for (const [nodeId, metrics] of result.nodeMetrics) {
