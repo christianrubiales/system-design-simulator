@@ -7,7 +7,7 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { SYSTEM_COMPONENTS } from "../src/data/components";
+import { SYSTEM_COMPONENTS, COMPONENT_CATEGORIES } from "../src/data/components";
 import { CONCEPT_DEFAULT, PATTERN_CONCEPTS, resolveComponentId } from "../src/data/conceptMap";
 import type { Concept } from "../src/types/component";
 
@@ -104,6 +104,18 @@ for (const [concept, target] of Object.entries(CONCEPT_DEFAULT)) {
   }
   if (!isPattern && target === null) {
     errors.push(`conceptMap.ts: "${concept}" maps to null but is not in PATTERN_CONCEPTS`);
+  }
+}
+
+// --- 8. Every entry's category must be a palette section ---
+// An entry in an unlisted category compiles, builds, and then is invisible in
+// the palette. Only this check catches it.
+const paletteCategories = new Set<string>(COMPONENT_CATEGORIES);
+for (const c of SYSTEM_COMPONENTS) {
+  if (!paletteCategories.has(c.category)) {
+    errors.push(
+      `${c.id}: category "${c.category}" is not in COMPONENT_CATEGORIES, so it would not appear in the palette`,
+    );
   }
 }
 

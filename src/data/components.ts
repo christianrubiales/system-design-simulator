@@ -276,17 +276,74 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
     description:
       "Managed Kubernetes control plane, so you get the full Kubernetes API, ecosystem, and portability without running etcd or masters yourself. Worth its extra complexity when you need Kubernetes-specific tooling, multi-cloud portability, or an existing Helm-based platform. If the answer is just 'run containers on AWS', ECS is the lower-overhead choice.",
   },
-  {
-    id: "auth-service",
-    label: "Auth Service",
-    category: "compute",
+{
+    id: "cognito",
+    label: "Cognito",
+    category: "security",
     icon: "KeyRound",
+    awsIcon: "cognito",
+    awsService: "Amazon Cognito",
+    concept: "auth-service",
+    managed: true,
+    // Source: user pool operation quotas are per-category and per-region;
+    // sign-in category defaults are in the low thousands of RPS.
     maxQPS: 10000,
-    latencyMs: 15,
+    latencyMs: 20,
+    scalable: true,
+    stateful: true,
+    description:
+      "Managed user directory and identity provider handling sign-up, sign-in, MFA, password reset, and social or enterprise federation via OIDC and SAML. Issues JWTs that API Gateway and ALB can validate natively, so authentication never has to reach your application code. Identity pools additionally vend temporary AWS credentials for direct client access to services.",
+  },
+  {
+    id: "iam",
+    label: "IAM",
+    category: "security",
+    icon: "ShieldCheck",
+    awsIcon: "iam",
+    awsService: "AWS Identity and Access Management",
+    managed: true,
+    // Authorization happens inside the AWS control plane, not as a hop in your
+    // request path; these values model "no measurable cost to the design".
+    maxQPS: 1000000,
+    latencyMs: 0,
     scalable: true,
     stateful: false,
     description:
-      "Dedicated authentication and authorization service that handles user login, token issuance (JWT/OAuth2), session management, and permission checks. Centralizing auth prevents security logic from being scattered across microservices. Examples include AWS Cognito, Auth0, Firebase Auth, and Google Cloud Identity Platform.",
+      "Controls which principals can call which AWS APIs on which resources. Roles with temporary credentials are the correct mechanism for service-to-service access; long-lived access keys are the anti-pattern interviewers listen for. Least privilege here is what keeps a compromised component from becoming a compromised account.",
+  },
+  {
+    id: "secrets-manager",
+    label: "Secrets Manager",
+    category: "security",
+    icon: "Lock",
+    awsIcon: "secrets-manager",
+    awsService: "AWS Secrets Manager",
+    managed: true,
+    // Source: GetSecretValue default quota is 10,000 requests/second.
+    // In practice applications cache secrets rather than fetching per request.
+    maxQPS: 10000,
+    latencyMs: 20,
+    scalable: true,
+    stateful: true,
+    description:
+      "Stores database credentials, API keys, and tokens encrypted with KMS, with automatic rotation via Lambda and fine-grained IAM access. Applications fetch at startup and cache rather than calling per request. The answer to 'where do the database credentials live?' that is not 'an environment variable in the deployment config'.",
+  },
+  {
+    id: "kms",
+    label: "KMS",
+    category: "security",
+    icon: "ShieldCheck",
+    awsIcon: "kms",
+    awsService: "AWS Key Management Service",
+    managed: true,
+    // Source: shared cryptographic operation quotas are in the tens of
+    // thousands of requests/second depending on key type and region.
+    maxQPS: 50000,
+    latencyMs: 5,
+    scalable: true,
+    stateful: true,
+    description:
+      "Manages encryption keys and performs cryptographic operations, backing encryption at rest for S3, EBS, RDS, DynamoDB, and Secrets Manager. Envelope encryption is the pattern that matters: KMS protects a data key, and the data key encrypts the payload, so bulk data never transits KMS. Key policies plus CloudTrail give you auditable control over who can decrypt what.",
   },
   // Storage
 {
@@ -399,17 +456,56 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
     description:
       "Object storage with eleven nines of durability, holding images, video, backups, logs, and data-lake files at effectively unlimited scale. Request rates scale per prefix — 5,500 GET/s each — so spreading keys across prefixes is how you scale a hot bucket. Storage classes (Standard, Infrequent Access, Glacier tiers) plus lifecycle rules are the standard cost answer, and it pairs with CloudFront to serve reads at the edge.",
   },
-  {
-    id: "search",
-    label: "Search / ES",
-    category: "storage",
+{
+    id: "opensearch",
+    label: "OpenSearch",
+    category: "analytics",
     icon: "Search",
-    maxQPS: 20000,
-    latencyMs: 10,
+    awsIcon: "opensearch",
+    awsService: "Amazon OpenSearch Service",
+    concept: "search",
+    managed: true,
+    // Cluster throughput depends on instance count and shard layout; models a
+    // mid-size cluster rather than a published quota.
+    maxQPS: 30000,
+    latencyMs: 30,
     scalable: true,
     stateful: true,
     description:
-      "Full-text search engine that indexes and queries large volumes of text with features like fuzzy matching, faceted search, and relevance scoring. Use it when users need to search across product catalogs, logs, or content feeds. Elasticsearch (Amazon OpenSearch), Apache Solr, and Google Cloud Search are common choices.",
+      "Managed search and analytics engine (the Elasticsearch fork) powering full-text search, faceted filtering, autocomplete, and log analytics. Data is sharded and replicated across nodes; shard sizing and mapping design decide performance. Also serves vector search for semantic and retrieval-augmented workloads, so it often doubles as the vector store in an AWS design.",
+  },
+  {
+    id: "athena",
+    label: "Athena",
+    category: "analytics",
+    icon: "Search",
+    awsIcon: "athena",
+    awsService: "Amazon Athena",
+    managed: true,
+    // Source: default 20-25 concurrent DML queries per account (soft limit).
+    maxQPS: 25,
+    // Interactive queries over S3 typically take seconds.
+    latencyMs: 2000,
+    scalable: true,
+    stateful: false,
+    description:
+      "Serverless SQL directly over files in S3 — no cluster to run, billed per terabyte scanned. Partitioning and columnar formats like Parquet are what keep both latency and cost down, since you pay for bytes read. Ideal for ad-hoc analysis and infrequent queries where a always-on warehouse would be wasteful.",
+  },
+  {
+    id: "glue",
+    label: "Glue",
+    category: "analytics",
+    icon: "GitBranch",
+    awsIcon: "glue",
+    awsService: "AWS Glue",
+    managed: true,
+    // Batch ETL service; throughput is job-shaped, not request-shaped.
+    maxQPS: 100,
+    latencyMs: 5000,
+    scalable: true,
+    stateful: false,
+    description:
+      "Serverless ETL plus a data catalog: crawlers infer schemas from S3 and register tables that Athena, Redshift Spectrum, and EMR all query. Jobs run Spark under the hood to clean, join, and reshape data on a schedule or trigger. The catalog is often the more important half — it is the shared metadata layer for the lake.",
   },
   // Messaging
 {
@@ -448,17 +544,38 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
     description:
       "Service mesh that puts an Envoy sidecar beside each service to standardize retries, timeouts, circuit breaking, mTLS, and traffic shifting — moving that logic out of application code and into the platform. Gives uniform observability across services regardless of language. Justified once you have enough services that per-service reimplementation of these concerns becomes the problem.",
   },
-  {
-    id: "monitoring",
-    label: "Monitoring",
-    category: "infrastructure",
+{
+    id: "cloudwatch",
+    label: "CloudWatch",
+    category: "observability",
     icon: "Activity",
-    maxQPS: 500000,
-    latencyMs: 5,
+    awsIcon: "cloudwatch",
+    awsService: "Amazon CloudWatch",
+    concept: "monitoring",
+    managed: true,
+    // Ingestion scales with the account; telemetry is off the request path.
+    maxQPS: 100000,
+    latencyMs: 0,
     scalable: true,
     stateful: true,
     description:
-      "Observability stack for metrics collection, centralized logging, distributed tracing, and alerting. Every production system needs monitoring to detect outages, track SLOs, and debug performance issues. Prometheus + Grafana, AWS CloudWatch, Google Cloud Monitoring, Datadog, and the ELK stack are standard tools.",
+      "Collects metrics, logs, and alarms across AWS services and your own applications, driving dashboards, autoscaling policies, and incident alerts. Logs Insights queries log data ad hoc; custom metrics and embedded metric format cover application-level signals. Alarms wired to SNS or Auto Scaling are what turn observability into automated response.",
+  },
+  {
+    id: "xray",
+    label: "X-Ray",
+    category: "observability",
+    icon: "Activity",
+    awsIcon: "xray",
+    awsService: "AWS X-Ray",
+    managed: true,
+    // Sampled tracing; overhead is negligible and off the critical path.
+    maxQPS: 100000,
+    latencyMs: 0,
+    scalable: true,
+    stateful: true,
+    description:
+      "Distributed tracing that follows a single request across services and shows where its latency actually went, with a service map of dependencies and error rates. Sampling keeps overhead and cost low at high traffic. The right answer when asked how you would debug a slow request in a microservice architecture.",
   },
   // Real-time
 {
@@ -497,17 +614,58 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
     description:
       "Managed scheduler that invokes targets on a cron expression, a fixed rate, or a one-time future timestamp, scaling to millions of independent schedules. Replaces the classic 'cron box' single point of failure and can trigger Lambda, Step Functions, SQS, and hundreds of other API targets directly. Use it for digests, retries, billing runs, and reminders.",
   },
-  {
-    id: "stream-processor",
-    label: "Stream Processor",
-    category: "compute",
+{
+    id: "kinesis",
+    label: "Kinesis",
+    category: "analytics",
     icon: "Waves",
-    maxQPS: 200000,
-    latencyMs: 10,
+    awsIcon: "kinesis",
+    awsService: "Amazon Kinesis Data Streams",
+    concept: "stream-processor",
+    managed: true,
+    // Source: each shard ingests 1 MB/s or 1,000 records/second; capacity is
+    // shard count x 1,000, so 100 shards models 100,000 records/second.
+    maxQPS: 100000,
+    latencyMs: 20,
     scalable: true,
     stateful: true,
     description:
-      "Processes continuous data streams in real-time for analytics, event processing, and ETL pipelines. Handles windowed aggregations, joins, and transformations on unbounded data. Apache Kafka Streams, Apache Flink, Spark Streaming, and AWS Kinesis Data Analytics are industry standards.",
+      "Ordered, replayable stream that many independent consumers can read at their own pace, retaining data from 24 hours up to 365 days. Throughput scales with shards — 1 MB/s or 1,000 records per second each — and the partition key decides ordering and hot-shard risk. Choose it over SQS when you need replay, ordering within a key, or multiple consumers over the same events.",
+  },
+  {
+    id: "firehose",
+    label: "Firehose",
+    category: "analytics",
+    icon: "Waves",
+    awsIcon: "firehose",
+    awsService: "Amazon Data Firehose",
+    managed: true,
+    // Source: default delivery-stream quota is 5,000 records/second in many
+    // regions, scaling automatically on request (varies by region).
+    maxQPS: 50000,
+    // Buffers before delivery, so end-to-end latency is seconds, not ms.
+    latencyMs: 1000,
+    scalable: true,
+    stateful: false,
+    description:
+      "Batches, optionally transforms, compresses, and delivers streaming data into S3, Redshift, OpenSearch, or third-party sinks with no code to run. Buffering means delivery latency is measured in seconds, which is the tradeoff against Kinesis Data Streams. The standard pipe for getting logs and events into a data lake.",
+  },
+  {
+    id: "msk",
+    label: "MSK",
+    category: "analytics",
+    icon: "Radio",
+    awsIcon: "msk",
+    awsService: "Amazon Managed Streaming for Apache Kafka",
+    managed: true,
+    // Cluster throughput scales with broker count and partitions; models a
+    // mid-size cluster rather than a published quota.
+    maxQPS: 200000,
+    latencyMs: 15,
+    scalable: true,
+    stateful: true,
+    description:
+      "Managed Apache Kafka — real Kafka brokers, so existing Kafka clients, Connect plugins, and Streams applications work unchanged. Choose it over Kinesis when you need the Kafka ecosystem, longer retention with compaction, or portability off AWS. The cost is operating a cluster concept (brokers, partitions, replication factor) that Kinesis hides.",
   },
 {
     id: "sns",
@@ -563,36 +721,50 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
     description:
       "Serverless time-series database that tiers recent data in memory and older data to cheaper magnetic storage automatically, with built-in interpolation and smoothing functions. Built for IoT telemetry, application metrics, and operational analytics where every row is timestamped and queries are windowed. Note it is not available in every region — a real constraint for multi-region designs.",
   },
-  {
-    id: "data-warehouse",
-    label: "Data Warehouse",
-    category: "storage",
+{
+    id: "redshift",
+    label: "Redshift",
+    category: "analytics",
     icon: "Warehouse",
-    maxQPS: 50,
-    latencyMs: 5000,
+    awsIcon: "redshift",
+    awsService: "Amazon Redshift",
+    concept: "data-warehouse",
+    managed: true,
+    // Analytical warehouses run few, heavy queries; concurrency, not QPS, is
+    // the real limit. Figure models sustained analytical query concurrency.
+    maxQPS: 500,
+    // Analytical scans take hundreds of ms to seconds, not single-digit ms.
+    latencyMs: 500,
     scalable: true,
     stateful: true,
     description:
-      "Columnar analytical database designed for complex queries across terabytes/petabytes of historical data. Separates analytics from operational databases to prevent query load from impacting production. Google BigQuery, Amazon Redshift, Snowflake, and ClickHouse support SQL analytics at massive scale.",
+      "Columnar data warehouse for analytical queries over billions of rows, with compression, zone maps, and massively parallel execution across nodes. Distribution and sort keys are the performance levers. Never put it on a user request path — it answers dashboards and reports, while OLTP traffic belongs on RDS, Aurora, or DynamoDB.",
   },
   // Infrastructure
-  {
-    id: "service-discovery",
-    label: "Service Discovery",
-    category: "infrastructure",
+{
+    id: "cloud-map",
+    label: "Cloud Map",
+    category: "observability",
     icon: "Compass",
-    maxQPS: 50000,
+    awsIcon: "cloud-map",
+    awsService: "AWS Cloud Map",
+    concept: "service-discovery",
+    managed: true,
+    // Discovery happens at connection setup, not per request.
+    maxQPS: 100000,
     latencyMs: 1,
     scalable: true,
     stateful: true,
     description:
-      "Enables microservices to find and communicate with each other dynamically without hardcoded addresses. Handles service registration, health checking, and DNS-based or API-based lookups. HashiCorp Consul, Apache ZooKeeper, etcd, and AWS Cloud Map are widely used for service mesh coordination.",
+      "Service registry where instances register their locations and clients resolve healthy endpoints by name over DNS or API, with unhealthy instances removed automatically. ECS registers tasks here natively, so scaling a service updates discovery without redeploying callers. The alternative to hardcoding endpoints or maintaining your own registry.",
   },
   {
     id: "reverse-proxy",
     label: "Reverse Proxy",
-    category: "networking",
+    category: "pattern",
     icon: "Shield",
+    concept: "reverse-proxy",
+    managed: false,
     maxQPS: 100000,
     latencyMs: 1,
     scalable: true,
@@ -603,8 +775,10 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "distributed-lock",
     label: "Distributed Lock",
-    category: "infrastructure",
+    category: "pattern",
     icon: "Lock",
+    concept: "distributed-lock",
+    managed: false,
     maxQPS: 10000,
     latencyMs: 5,
     scalable: false,
@@ -615,8 +789,10 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "circuit-breaker",
     label: "Circuit Breaker",
-    category: "infrastructure",
+    category: "pattern",
     icon: "ShieldOff",
+    concept: "circuit-breaker",
+    managed: false,
     maxQPS: 100000,
     latencyMs: 1,
     scalable: true,
@@ -645,8 +821,10 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "origin-shield",
     label: "Origin Shield",
-    category: "networking",
+    category: "pattern",
     icon: "ShieldCheck",
+    concept: "origin-shield",
+    managed: false,
     maxQPS: 200000,
     latencyMs: 5,
     scalable: true,
@@ -657,8 +835,10 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "coordination-service",
     label: "Coordination Service",
-    category: "infrastructure",
+    category: "pattern",
     icon: "Users",
+    concept: "coordination-service",
+    managed: false,
     maxQPS: 20000,
     latencyMs: 5,
     scalable: true,
@@ -682,8 +862,10 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "id-generator",
     label: "ID Generator",
-    category: "infrastructure",
+    category: "pattern",
     icon: "Fingerprint",
+    concept: "id-generator",
+    managed: false,
     maxQPS: 500000,
     latencyMs: 1,
     scalable: true,
@@ -694,8 +876,10 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "sharded-counter",
     label: "Sharded Counter",
-    category: "infrastructure",
+    category: "pattern",
     icon: "Hash",
+    concept: "sharded-counter",
+    managed: false,
     maxQPS: 500000,
     latencyMs: 2,
     scalable: true,
@@ -743,8 +927,10 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "vector-db",
     label: "Vector Database",
-    category: "storage",
+    category: "pattern",
     icon: "Brain",
+    concept: "vector-db",
+    managed: false,
     maxQPS: 10000,
     latencyMs: 10,
     scalable: true,
@@ -755,8 +941,10 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "geospatial-index",
     label: "Geospatial Index",
-    category: "storage",
+    category: "pattern",
     icon: "MapPin",
+    concept: "geospatial-index",
+    managed: false,
     maxQPS: 50000,
     latencyMs: 5,
     scalable: true,
@@ -765,17 +953,22 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
       "Indexes and queries location data using geohash, quadtree, R-tree, or H3 hexagonal grids for efficient nearest-neighbor and radius searches. Essential for ride-sharing, food delivery, local search, and any proximity-based system. PostGIS, Redis GEO (GEOADD/GEOSEARCH), Elasticsearch geo_point, and Google S2 library are common implementations.",
   },
   // Infrastructure
-  {
-    id: "config-service",
-    label: "Config Service",
-    category: "infrastructure",
+{
+    id: "appconfig",
+    label: "AppConfig",
+    category: "observability",
     icon: "Settings",
-    maxQPS: 50000,
-    latencyMs: 2,
+    awsIcon: "appconfig",
+    awsService: "AWS AppConfig",
+    concept: "config-service",
+    managed: true,
+    // Clients poll and cache; configuration is not fetched per request.
+    maxQPS: 10000,
+    latencyMs: 5,
     scalable: true,
     stateful: true,
     description:
-      "Centralized dynamic configuration management for feature flags, A/B test parameters, and runtime settings without redeployment. Supports versioning, rollback, targeted rollouts by user segment, and real-time propagation to all service instances. AWS AppConfig, LaunchDarkly, Unleash, and etcd-backed config stores are common implementations.",
+      "Manages feature flags and dynamic configuration separately from deployments, validating changes and rolling them out gradually with automatic rollback on a CloudWatch alarm. Lets you ship code dark and enable it per segment without redeploying. The controlled-rollout half is what distinguishes it from stuffing config in environment variables.",
   },
 ];
 
@@ -806,11 +999,12 @@ export const CATEGORY_STYLE: Record<
 /**
  * Categories shown as palette sections, in display order.
  *
- * `messaging` and `infrastructure` are legacy keys still carried by catalog
- * entries that have not been converted to AWS services yet. They MUST stay
- * listed until every entry is recategorized, or their components silently
- * disappear from the palette — a hole that type-checking cannot see.
- * Remove them once no entry uses them (`npm run check:catalog` enforces this).
+ * Every catalog entry must use one of these, or its components silently
+ * disappear from the palette — a hole that type-checking cannot see, so
+ * `npm run check:catalog` enforces it. The legacy `messaging` and
+ * `infrastructure` keys are intentionally absent here: no catalog entry uses
+ * them any more, but they remain in CATEGORY_STYLE so nodes persisted before
+ * the AWS catalog still render with color.
  */
 export const COMPONENT_CATEGORIES = [
   "networking",
@@ -823,6 +1017,4 @@ export const COMPONENT_CATEGORIES = [
   "security",
   "observability",
   "pattern",
-  "messaging",
-  "infrastructure",
 ] as const satisfies readonly ComponentCategory[];
