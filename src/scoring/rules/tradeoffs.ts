@@ -76,7 +76,7 @@ export function scoreTradeoffs(
     );
   } else {
     feedback.push(
-      "Add a Message Queue (Kafka, SQS, RabbitMQ) to decouple synchronous dependencies. This is a key tradeoff: you accept eventual consistency in exchange for much higher resilience and throughput. If Service B goes down, Service A can still enqueue work instead of failing."
+      "Add SQS to decouple synchronous dependencies. This is the classic trade-off: you accept eventual consistency in exchange for resilience and throughput. If the consumer goes down, the producer can still enqueue work instead of failing."
     );
   }
 

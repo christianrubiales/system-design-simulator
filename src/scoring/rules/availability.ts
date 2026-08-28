@@ -61,7 +61,7 @@ export function scoreAvailability(
     );
   } else {
     feedback.push(
-      "Add database replication (replicas > 1) to at least one durable storage component (SQL, NoSQL, object storage). Having multiple different storage types (e.g., Redis + PostgreSQL) isn't redundancy — if PostgreSQL goes down, Redis can't replace it. True redundancy means replicas of the same data store ready to take over on failure."
+      "Add redundancy to at least one durable store — Multi-AZ on RDS or Aurora, or more than one instance. Having several different stores is not redundancy: if RDS goes down, ElastiCache cannot replace it. Redundancy means another copy of the same data ready to take over. Note that read replicas add read capacity but do not protect writes; Multi-AZ does."
     );
   }
 
@@ -126,7 +126,7 @@ export function scoreAvailability(
     passed.push("Cache enables graceful degradation — serves stale data if database becomes unavailable");
   } else if (hasDB && !hasCache) {
     feedback.push(
-      "Add a Cache layer (Redis/Memcached) in front of your database. Beyond performance, caching enables graceful degradation: if your DB goes down, the cache can continue serving recent data while you recover, keeping the system partially available."
+      "Add ElastiCache in front of your database. Beyond performance, caching enables graceful degradation: if the database goes down, the cache can keep serving recent data while you recover, keeping the system partially available."
     );
   } else if (hasCache && !hasDB) {
     feedback.push(
@@ -148,7 +148,7 @@ export function scoreAvailability(
     );
   } else {
     feedback.push(
-      "Add a Message Queue (Kafka, SQS) to buffer requests during downstream outages. If a consumer service goes down, messages are retained in the queue and processed when it recovers — no data loss, no user-facing errors for async operations."
+      "Add SQS to buffer requests during downstream outages. If a consumer goes down, messages are retained and processed when it recovers — no data loss, no user-facing errors for async work. Use Kinesis or MSK instead when you need replay or several independent readers."
     );
   }
 

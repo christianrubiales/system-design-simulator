@@ -115,7 +115,7 @@ export function scoreCost(
   const hasDB = connectedIds.has("sql-db") || connectedIds.has("nosql-db");
   if (hasCache && hasDB) {
     score += 3;
-    passed.push("Cache reduces expensive database queries — a $50/mo Redis instance can save $500/mo in DB scaling costs");
+    passed.push("ElastiCache absorbs reads that would otherwise hit the database — a cache node costs far less than the larger database instance those reads would require");
   } else if (hasDB && !hasCache) {
     if (placedIds.has("cache")) {
       feedback.push(
@@ -123,7 +123,7 @@ export function scoreCost(
       );
     } else {
       feedback.push(
-        "Add a Cache (Redis/Memcached) to reduce database load and cost. Databases are one of the most expensive components to scale. A cache costing $50-100/month can handle reads that would otherwise require a $500+/month larger DB instance."
+        "Add ElastiCache to reduce database load and cost. Databases are among the most expensive components to scale, and a cache node handles reads that would otherwise force you onto a much larger RDS or Aurora instance. Set its hit rate in the properties panel and watch what still reaches the database."
       );
     }
   }

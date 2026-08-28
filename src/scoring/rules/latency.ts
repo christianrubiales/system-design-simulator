@@ -74,7 +74,7 @@ export function scoreLatency(
     );
   } else {
     feedback.push(
-      "Add a Cache layer (Redis/Memcached) between your App Servers and Database. Reading from memory (~1ms) is 5-10x faster than reading from disk (~5-10ms). For read-heavy workloads, caching can serve 80-90% of requests without ever touching the database."
+      "Add ElastiCache between your application tier and the database. In-memory reads are sub-millisecond against single-digit milliseconds from disk, and at a typical 85% hit rate the database sees only 15% of reads."
     );
   }
 
@@ -150,7 +150,7 @@ export function scoreLatency(
     );
   } else {
     feedback.push(
-      "Consider using low-latency data stores for your hot path. Redis serves reads in <1ms and DynamoDB in single-digit milliseconds, while a complex SQL JOIN can take 50-100ms. Pick the right store for your access pattern."
+      "Consider a lower-latency store on the hot path. ElastiCache serves reads in under a millisecond and DynamoDB in single-digit milliseconds, while a complex SQL join on RDS can take 50-100ms. Match the store to the access pattern."
     );
   }
 

@@ -77,14 +77,14 @@ export function scoreScalability(
   // Check caching (3 pts)
   if (hasCache) {
     score += 3;
-    passed.push("Caching layer (Redis/Memcached) absorbs read traffic and reduces backend load");
+    passed.push("ElastiCache absorbs read traffic and reduces backend load");
   } else if (placedIds.has("cache")) {
     feedback.push(
       "You placed a Cache but it isn't connected to the request path. Connect your App Servers to it so reads can actually be absorbed by the cache."
     );
   } else {
     feedback.push(
-      "Add a caching layer (Redis/Memcached) between your App Servers and Database. This can reduce DB load by 80-90% for read-heavy workloads by serving frequently accessed data from memory (~1ms) instead of disk (~5-10ms)."
+      "Add ElastiCache between your application tier and the database. For read-heavy workloads this removes most read traffic from the database — the hit rate you configure decides exactly how much."
     );
   }
 
@@ -98,7 +98,7 @@ export function scoreScalability(
     );
   } else {
     feedback.push(
-      "Add a Message Queue (Kafka, SQS, RabbitMQ) for asynchronous processing. Queues decouple producers from consumers, letting you buffer traffic spikes and process heavy tasks (email, transcoding, analytics) in the background without blocking user requests."
+      "Add SQS for asynchronous processing. Queues decouple producers from consumers, letting you buffer spikes and run heavy work (email, transcoding, analytics) in the background without blocking user requests. Remember the consumer: SQS delivers to Lambda or ECS, which does the write."
     );
   }
 
