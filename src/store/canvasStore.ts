@@ -13,6 +13,8 @@ import {
 import { useSimulationStore } from "./simulationStore";
 import { safeLocalStorage } from "./safeStorage";
 import { upgradeNodeData } from "@/data/upgradeNodeData";
+import { validateConnection } from "@/data/connectionRules";
+import { useAppStore } from "./appStore";
 
 export interface ComponentNodeData {
   componentId: string;
@@ -331,6 +333,24 @@ export const useCanvasStore = create<CanvasState>()(
         });
       },
       onConnect: (connection) => {
+        // Connection rules are advisory: the edge is always created, then
+        // flagged. A hand-authored rule set will produce false negatives, and a
+        // wrong validator that blocks leaves the user no way to draw their design.
+        const state0 = get();
+        const src = state0.nodes.find((n) => n.id === connection.source);
+        const dst = state0.nodes.find((n) => n.id === connection.target);
+        const srcId = src?.data?.componentId as string | undefined;
+        const dstId = dst?.data?.componentId as string | undefined;
+        if (srcId && dstId) {
+          const verdict = validateConnection(srcId, dstId);
+          if (!verdict.ok) {
+            const sLabel = (src?.data?.label as string) ?? srcId;
+            const dLabel = (dst?.data?.label as string) ?? dstId;
+            useAppStore
+              .getState()
+              .showToast(`${sLabel} → ${dLabel}: ${dLabel} ${verdict.reason}`, "info");
+          }
+        }
         set((state) => ({
           history: pushedHistory(state),
           future: [],

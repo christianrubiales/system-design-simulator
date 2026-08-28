@@ -16,6 +16,7 @@ import {
   UNKNOWN_AVAILABILITY,
 } from "../src/data/regionAvailability";
 import { PROBLEMS } from "../src/data/problems";
+import { validateConnection, SERVICE_PORTS } from "../src/data/connectionRules";
 
 const root = process.cwd();
 const errors: string[] = [];
@@ -185,6 +186,27 @@ for (const p of PROBLEMS) {
     if (!touched.has(id)) {
       errors.push(`problems.ts: "${p.id}" leaves "${id}" unconnected`);
     }
+  }
+}
+
+// --- 13. Every reference-solution edge must validate against the port model ---
+// The reference solutions are expert-authored correct architectures, so a flag
+// here is a bug in SERVICE_PORTS, not in the diagram.
+for (const p of PROBLEMS) {
+  for (const e of p.referenceSolution.edges) {
+    const verdict = validateConnection(e.source, e.target);
+    if (!verdict.ok) {
+      errors.push(
+        `connectionRules.ts: "${p.id}" edge ${e.source} -> ${e.target} is flagged — ${verdict.reason}`,
+      );
+    }
+  }
+}
+
+// --- 14. Port declarations must refer to real catalog services ---
+for (const id of Object.keys(SERVICE_PORTS)) {
+  if (!catalogIds.has(id)) {
+    errors.push(`connectionRules.ts: "${id}" is not a catalog entry`);
   }
 }
 

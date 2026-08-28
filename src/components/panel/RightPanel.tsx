@@ -7,7 +7,10 @@ import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Info, Trash2, Lightbulb, ChevronDown, ChevronRight, CheckSquare, BookOpen, Target, AlertTriangle, MessageCircle, Layers, Pencil } from "lucide-react";
+import type { Edge } from "@xyflow/react";
 import { useCanvasStore, type ComponentNodeData, type CustomEdgeData } from "@/store/canvasStore";
+import { validateConnection, SERVICE_PORTS } from "@/data/connectionRules";
+import { resolveComponentId } from "@/data/conceptMap";
 import { useAppStore } from "@/store/appStore";
 import { getProblemById } from "@/data/problems";
 import { getConceptByComponentId } from "@/data/conceptLibrary";
@@ -24,6 +27,46 @@ interface RightPanelProps {
   open?: boolean;
   onSimulate: () => void;
   variant?: "desktop" | "mobile";
+}
+
+/**
+ * Explains why an edge is flagged, and what the source could legitimately
+ * connect to instead. Advisory: the edge still simulates and scores normally.
+ */
+function EdgeConnectionNotice({ edge }: { edge: Edge }) {
+  const nodes = useCanvasStore((s) => s.nodes);
+  const srcNode = nodes.find((n) => n.id === edge.source);
+  const dstNode = nodes.find((n) => n.id === edge.target);
+  const srcId = srcNode?.data?.componentId as string | undefined;
+  const dstId = dstNode?.data?.componentId as string | undefined;
+  if (!srcId || !dstId) return null;
+
+  const verdict = validateConnection(srcId, dstId);
+  const srcLabel = (srcNode?.data?.label as string) ?? srcId;
+  const dstLabel = (dstNode?.data?.label as string) ?? dstId;
+
+  if (verdict.ok) {
+    if (!verdict.kind) return null;
+    return (
+      <p className="rounded-md border border-zinc-700 bg-zinc-800/50 px-2.5 py-2 text-[11px] text-zinc-400">
+        <span className="font-medium text-zinc-300">{verdict.kind}</span> traffic — {srcLabel} → {dstLabel}
+      </p>
+    );
+  }
+
+  const emits = SERVICE_PORTS[resolveComponentId(srcId)]?.emits ?? [];
+  return (
+    <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-[11px] text-amber-200/90">
+      <p className="font-medium text-amber-300">Unusual connection</p>
+      <p className="mt-1">
+        {dstLabel} {verdict.reason}, but {srcLabel} sends {emits.join(", ") || "nothing declared"}.
+      </p>
+      <p className="mt-1 text-amber-200/70">
+        Kept as drawn — this is a hint, not a rule. Interview designs often need a
+        service between these two.
+      </p>
+    </div>
+  );
 }
 
 function RightTabs({ onSimulate }: { onSimulate: () => void }) {
@@ -130,6 +173,7 @@ function EdgePropertiesPanel() {
   const selectedEdge = edges.find((e) => e.id === selectedEdgeId);
   if (!selectedEdge) return null;
 
+
   const data = (selectedEdge.data ?? {}) as CustomEdgeData;
   const protocols: CustomEdgeData["protocol"][] = ["http", "grpc", "websocket", "pubsub", "tcp", "custom"];
 
@@ -138,6 +182,8 @@ function EdgePropertiesPanel() {
       <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
         Edge Properties
       </p>
+
+      <EdgeConnectionNotice edge={selectedEdge} />
 
       <div className="space-y-2">
         {/* Label */}

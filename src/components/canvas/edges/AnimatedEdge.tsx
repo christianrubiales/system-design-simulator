@@ -9,7 +9,8 @@ import {
 } from "@xyflow/react";
 import { useSimulationStore } from "@/store/simulationStore";
 import { useAppStore } from "@/store/appStore";
-import type { CustomEdgeData } from "@/store/canvasStore";
+import { useCanvasStore, type CustomEdgeData } from "@/store/canvasStore";
+import { validateConnection } from "@/data/connectionRules";
 
 const protocolBadge: Record<string, { text: string; color: string } | null> = {
   http: null,
@@ -22,6 +23,8 @@ const protocolBadge: Record<string, { text: string; color: string } | null> = {
 
 function AnimatedEdgeInner({
   id,
+  source,
+  target,
   sourceX,
   sourceY,
   targetX,
@@ -32,6 +35,16 @@ function AnimatedEdgeInner({
   markerEnd,
   data,
 }: EdgeProps) {
+  // Validity is DERIVED, never persisted: improving the rules re-evaluates every
+  // existing design instead of leaving a stale verdict baked into saved files.
+  const nodes = useCanvasStore((s) => s.nodes);
+  const verdict = (() => {
+    const s = nodes.find((n) => n.id === source)?.data?.componentId as string | undefined;
+    const t = nodes.find((n) => n.id === target)?.data?.componentId as string | undefined;
+    return s && t ? validateConnection(s, t) : null;
+  })();
+  const suspect = verdict !== null && !verdict.ok;
+  const suspectReason = suspect && verdict && !verdict.ok ? verdict.reason : undefined;
   const isRunning = useSimulationStore((s) => s.isRunning);
   const hasResult = useSimulationStore((s) => s.result !== null);
   // Traffic keeps flowing once a simulation has run (not just during the brief
@@ -54,7 +67,7 @@ function AnimatedEdgeInner({
   });
 
   const badge = protocol ? protocolBadge[protocol] : null;
-  const showLabel = label || badge;
+  const showLabel = label || badge || suspect;
 
   return (
     <g>
@@ -65,9 +78,14 @@ function AnimatedEdgeInner({
         markerEnd={markerEnd}
         style={{
           ...style,
-          stroke: flowing ? "rgba(52, 211, 230, 0.55)" : idleStroke,
+          // A flagged connection stays fully functional — it is marked, not blocked.
+          stroke: suspect
+            ? "rgba(251, 191, 36, 0.75)"
+            : flowing
+              ? "rgba(52, 211, 230, 0.55)"
+              : idleStroke,
           strokeWidth: flowing ? 1.75 : 1.5,
-          ...(isAsync ? { strokeDasharray: "6 4" } : {}),
+          ...(isAsync || suspect ? { strokeDasharray: "6 4" } : {}),
         }}
       />
       {/* Directional traffic — particles flow source → target along the path. */}
@@ -105,6 +123,14 @@ function AnimatedEdgeInner({
                 className={`rounded border px-1 py-0.5 text-[10px] font-medium leading-none ${badge.color}`}
               >
                 {badge.text}
+              </span>
+            )}
+            {suspect && (
+              <span
+                title={suspectReason}
+                className="cursor-help rounded border border-amber-500/40 bg-amber-500/15 px-1 py-0.5 text-[10px] font-semibold leading-none text-amber-400"
+              >
+                ?
               </span>
             )}
           </div>
