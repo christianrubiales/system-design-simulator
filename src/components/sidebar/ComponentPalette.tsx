@@ -16,7 +16,7 @@ import {
 import { getComponentById } from "@/data/componentLookup";
 import { awsIconUrl } from "@/lib/awsIcon";
 import { CONCEPT_LIBRARY } from "@/data/conceptLibrary";
-import { Server, GripVertical, Plus, Search as SearchIcon, Sparkles, Trash2 } from "lucide-react";
+import { Server, GripVertical, Plus, Search as SearchIcon, Sparkles, Trash2, ChevronRight } from "lucide-react";
 import { ICON_MAP } from "@/lib/icons";
 import { useCanvasStore, type ComponentNodeData } from "@/store/canvasStore";
 import { useAppStore } from "@/store/appStore";
@@ -32,6 +32,22 @@ interface ComponentPaletteProps {
 
 export function ComponentPalette({ onCreateCustomComponent, onComponentAdded }: ComponentPaletteProps = {}) {
   const [search, setSearch] = useState("");
+  /**
+   * Per-section collapse state. 56 entries across 10 sections is too long to
+   * scroll, so the sections a design usually starts from stay open and the
+   * rest start closed. Absent key means open; only an explicit `false` closes.
+   * Session-only — not worth persisting.
+   */
+  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
+    containers: false,
+    analytics: false,
+    security: false,
+    observability: false,
+    pattern: false,
+  });
+  const toggleCategory = useCallback((cat: string) => {
+    setOpenCategories((prev) => ({ ...prev, [cat]: prev[cat] === false }));
+  }, []);
   const { screenToFlowPosition } = useReactFlow();
   const addNode = useCanvasStore((s) => s.addNode);
   const customComponents = useCustomComponentsStore((s) => s.components);
@@ -94,10 +110,14 @@ export function ComponentPalette({ onCreateCustomComponent, onComponentAdded }: 
 
   const query = search.toLowerCase().trim();
 
+  // Search matches the AWS name, the full product name, and the generic
+  // concept alias — so "cache" finds ElastiCache and "nosql" finds DynamoDB.
   const matches = (c: SystemComponent) =>
     query === "" ||
     c.label.toLowerCase().includes(query) ||
-    c.description.toLowerCase().includes(query);
+    c.description.toLowerCase().includes(query) ||
+    (c.awsService?.toLowerCase().includes(query) ?? false) ||
+    (c.concept?.toLowerCase().includes(query) ?? false);
 
   const totalMatches = query
     ? allComponents.filter(matches).length
@@ -149,9 +169,19 @@ export function ComponentPalette({ onCreateCustomComponent, onComponentAdded }: 
             (c) => c.category === cat && matches(c),
           );
           if (query !== "" && items.length === 0) return null;
+          // A search must never hide a match behind a collapsed section.
+          const isOpen = query !== "" || openCategories[cat] !== false;
           return (
             <div key={cat}>
-              <div className="mb-2 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => toggleCategory(cat)}
+                aria-expanded={isOpen}
+                className="mb-2 flex w-full items-center gap-2 text-left"
+              >
+                <ChevronRight
+                  className={`h-3 w-3 shrink-0 text-zinc-600 transition-transform ${isOpen ? "rotate-90" : ""}`}
+                />
                 <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
                   {CATEGORY_STYLE[cat].label}
                 </p>
@@ -159,9 +189,9 @@ export function ComponentPalette({ onCreateCustomComponent, onComponentAdded }: 
                   {items.length}
                 </span>
                 <div className="h-px flex-1 bg-zinc-800" />
-              </div>
+              </button>
               <TooltipProvider>
-              <div className="space-y-0.5">
+              <div className={`space-y-0.5 ${isOpen ? "" : "hidden"}`}>
                 {items.map((item) => {
                   const Icon = ICON_MAP[item.icon] ?? Server;
                   const style =
