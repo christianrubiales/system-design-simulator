@@ -293,6 +293,25 @@ Being explicit about what this model **cannot** show:
 
 ---
 
+## 💰 Cost Estimates
+
+The Cost tab prices a design against **real AWS on-demand rates**, pulled from the AWS Price List API by  and committed as generated data — the app makes no network calls.
+
+**Priced:** instance hours (EC2, RDS, ElastiCache, OpenSearch, MSK and friends), provisioned capacity (DynamoDB units, Kinesis shards), stored data by S3 storage class, requests (API Gateway, Lambda, S3), and data transfer (CloudFront egress, NAT Gateway processing).
+
+**Deliberately excluded, and stated in the panel:**
+
+- **Reserved Instances and Savings Plans** — real bills with commitments run 30–70% lower.
+- **The free tier.**
+- Services we have no pricing source for; these are listed as *not priced* rather than guessed at.
+
+**Two approximations you should know about:**
+
+- **Regional pricing is a single multiplier** sampled on one instance class against . Exact for compute in that family, approximate for storage and requests.
+- **Data transfer depends on your average response size**, which nothing in a diagram can know. It is a config parameter you set per node, shown in the properties panel — not a hidden constant. When transfer exceeds half the bill, the panel says so explicitly, because a total dominated by an assumption should announce itself.
+
+---
+
 ## 🚀 Quick Start
 
 > **Prerequisites:** Node.js 18.18+ and npm.
