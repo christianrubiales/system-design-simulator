@@ -371,7 +371,7 @@ export const SERVICE_CONFIG: Record<string, ServiceConfigSpec> = {
           { value: "standard", label: "Standard", help: "Frequent access. Highest storage price, no retrieval fee." },
           { value: "ia", label: "Infrequent Access", help: "Cheaper storage, per-GB retrieval fee, 30-day minimum." },
           { value: "glacier-ir", label: "Glacier Instant Retrieval", help: "Archive pricing with millisecond access." },
-          { value: "glacier-deep", label: "Glacier Deep Archive", help: "Cheapest storage; retrieval takes hours." },
+          { value: "glacier", label: "Glacier Flexible Retrieval", help: "Archive storage at a fraction of Standard; retrieval takes minutes to hours." },
         ],
         default: "standard",
       },
