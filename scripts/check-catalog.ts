@@ -147,7 +147,14 @@ for (const id of UNKNOWN_AVAILABILITY) {
 // These encode three defect classes found in the shipped content: a
 // `rate-limiter` hop that is not an AWS service, queues wired straight into
 // datastores with no consumer, and nodes orphaned by rewiring.
-const QUEUE_OR_STREAM = new Set(["message-queue", "stream-processor", "msk", "sqs", "kinesis"]);
+// Queues, streams, and routing/fan-out services all invoke or are drained by a
+// consumer; none of them writes to a datastore itself.
+const QUEUE_OR_STREAM = new Set([
+  "message-queue", "stream-processor", "msk", "sqs", "kinesis",
+  "notification-service", "sns",
+  "pub-sub", "eventbridge",
+  "task-scheduler", "eventbridge-scheduler",
+]);
 const DATASTORES = new Set([
   "nosql-db", "sql-db", "object-storage", "search", "timeseries-db",
   "sharded-counter", "notification-service", "task-scheduler", "graph-db",
