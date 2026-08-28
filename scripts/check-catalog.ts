@@ -10,6 +10,11 @@ import { join } from "node:path";
 import { SYSTEM_COMPONENTS, COMPONENT_CATEGORIES } from "../src/data/components";
 import { CONCEPT_DEFAULT, PATTERN_CONCEPTS, resolveComponentId } from "../src/data/conceptMap";
 import type { Concept } from "../src/types/component";
+import {
+  AWS_REGIONS,
+  UNAVAILABLE_REGIONS,
+  UNKNOWN_AVAILABILITY,
+} from "../src/data/regionAvailability";
 
 const root = process.cwd();
 const errors: string[] = [];
@@ -116,6 +121,24 @@ for (const c of SYSTEM_COMPONENTS) {
     errors.push(
       `${c.id}: category "${c.category}" is not in COMPONENT_CATEGORIES, so it would not appear in the palette`,
     );
+  }
+}
+
+// --- 9. Region data must stay consistent with the catalog ---
+const regionCodes = new Set(AWS_REGIONS.map((r) => r.code));
+for (const [serviceId, regions] of Object.entries(UNAVAILABLE_REGIONS)) {
+  if (!catalogIds.has(serviceId)) {
+    errors.push(`regionAvailability.ts: "${serviceId}" is not a catalog entry`);
+  }
+  for (const r of regions) {
+    if (!regionCodes.has(r)) {
+      errors.push(`regionAvailability.ts: "${serviceId}" references unknown region "${r}"`);
+    }
+  }
+}
+for (const id of UNKNOWN_AVAILABILITY) {
+  if (!catalogIds.has(id)) {
+    errors.push(`regionAvailability.ts: UNKNOWN_AVAILABILITY "${id}" is not a catalog entry`);
   }
 }
 

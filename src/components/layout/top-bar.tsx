@@ -29,6 +29,7 @@ import {
   Gauge,
 } from "lucide-react";
 import { useAppStore } from "@/store/appStore";
+import { AWS_REGIONS } from "@/data/regionAvailability";
 import { useCanvasStore } from "@/store/canvasStore";
 import { useSimulationStore } from "@/store/simulationStore";
 import { usePenStore } from "@/store/penStore";
@@ -74,6 +75,8 @@ export function TopBar({ onSimulate, onScore, onClearCanvas, onSave, onLoad, onS
   const setSelectedProblem = useAppStore((s) => s.setSelectedProblem);
   const theme = useAppStore((s) => s.theme);
   const toggleTheme = useAppStore((s) => s.toggleTheme);
+  const region = useAppStore((s) => s.region);
+  const setRegion = useAppStore((s) => s.setRegion);
   const nodeDetailsVisible = useAppStore((s) => s.nodeDetailsVisible);
   const toggleNodeDetails = useAppStore((s) => s.toggleNodeDetails);
 
@@ -587,6 +590,22 @@ export function TopBar({ onSimulate, onScore, onClearCanvas, onSave, onLoad, onS
           <Coffee className="h-3.5 w-3.5" />
           <span>Buy me a coffee</span>
         </button>
+
+        {/* Deployment region — drives availability warnings only; simulation,
+            scoring, and cost are unaffected. */}
+        <select
+          value={region}
+          onChange={(e) => setRegion(e.target.value)}
+          className="hidden h-7 rounded-md border border-zinc-700 bg-zinc-800 px-2 text-xs text-zinc-300 transition-colors hover:border-zinc-600 hover:text-zinc-100 lg:block"
+          title="Deployment region — flags services unavailable there"
+          aria-label="Deployment region"
+        >
+          {AWS_REGIONS.map((r) => (
+            <option key={r.code} value={r.code}>
+              {r.code} — {r.label}
+            </option>
+          ))}
+        </select>
 
         <button
           onClick={toggleTheme}

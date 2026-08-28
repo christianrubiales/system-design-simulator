@@ -26,8 +26,14 @@ interface AppState {
   activeLeftTab: "components" | "problems" | "learn";
   activeRightTab: "properties" | "simulation" | "score" | "capacity" | "tradeoffs";
   toast: ToastData | null;
+  /**
+   * Deployment region, used only for availability warnings in the palette and
+   * on nodes. Deliberately does NOT affect simulation, scoring, or cost.
+   */
+  region: string;
 
   setSelectedProblem: (id: string) => void;
+  setRegion: (region: string) => void;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
   toggleLeftSidebar: () => void;
@@ -56,8 +62,10 @@ export const useAppStore = create<AppState>()(
       activeLeftTab: "components",
       activeRightTab: "properties",
       toast: null,
+      region: "us-east-1",
 
       setSelectedProblem: (id) => set({ selectedProblemId: id }),
+      setRegion: (region) => set({ region }),
       setTheme: (theme) => {
         applyThemeClass(theme);
         set({ theme });
@@ -105,6 +113,7 @@ export const useAppStore = create<AppState>()(
         selectedProblemId: state.selectedProblemId,
         theme: state.theme,
         nodeDetailsVisible: state.nodeDetailsVisible,
+        region: state.region,
       }),
       // Apply the persisted theme to <html> as soon as the store rehydrates.
       onRehydrateStorage: () => (state) => {

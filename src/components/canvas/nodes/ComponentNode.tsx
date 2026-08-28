@@ -7,7 +7,9 @@ import type { ComponentNodeData } from "@/store/canvasStore";
 import { useCanvasStore } from "@/store/canvasStore";
 import { Server } from "lucide-react";
 import { ICON_MAP } from "@/lib/icons";
+import { AlertTriangle } from "lucide-react";
 import { CATEGORY_STYLE } from "@/data/components";
+import { AWS_REGIONS, isUnavailableInRegion } from "@/data/regionAvailability";
 import { getComponentById } from "@/data/componentLookup";
 import { awsIconUrl } from "@/lib/awsIcon";
 import type { ComponentCategory } from "@/types/component";
@@ -31,6 +33,10 @@ function ComponentNodeInner({ id, data, selected }: NodeProps<ComponentNode>) {
   // Persisted node data is a snapshot and carries no awsIcon, so read the
   // current spec from the catalog.
   const iconUrl = awsIconUrl(getComponentById(nodeData.componentId));
+  // Region availability is advisory: the node still simulates and scores
+  // normally, it just carries a visible warning.
+  const region = useAppStore((s) => s.region);
+  const regionUnavailable = isUnavailableInRegion(nodeData.componentId, region);
   const status = (nodeData.status as string) ?? "idle";
   const statusDot = STATUS_DOT[status] ?? STATUS_DOT.idle;
   const isBottleneck = nodeData.isBottleneck ?? false;
@@ -109,6 +115,16 @@ function ComponentNodeInner({ id, data, selected }: NodeProps<ComponentNode>) {
             <Icon className="h-4 w-4" />
           )}
         </div>
+        {regionUnavailable && (
+          <AlertTriangle
+            className="h-3.5 w-3.5 shrink-0 text-amber-400"
+            aria-label={`Not available in ${region}`}
+          >
+            <title>
+              {`Not available in ${AWS_REGIONS.find((r) => r.code === region)?.label ?? region}`}
+            </title>
+          </AlertTriangle>
+        )}
         {editing ? (
           <input
             ref={inputRef}

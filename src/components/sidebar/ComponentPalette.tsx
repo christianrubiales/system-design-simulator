@@ -16,7 +16,8 @@ import {
 import { getComponentById } from "@/data/componentLookup";
 import { awsIconUrl } from "@/lib/awsIcon";
 import { CONCEPT_LIBRARY } from "@/data/conceptLibrary";
-import { Server, GripVertical, Plus, Search as SearchIcon, Sparkles, Trash2, ChevronRight } from "lucide-react";
+import { Server, GripVertical, Plus, Search as SearchIcon, Sparkles, Trash2, ChevronRight, AlertTriangle } from "lucide-react";
+import { AWS_REGIONS, isUnavailableInRegion } from "@/data/regionAvailability";
 import { ICON_MAP } from "@/lib/icons";
 import { useCanvasStore, type ComponentNodeData } from "@/store/canvasStore";
 import { useAppStore } from "@/store/appStore";
@@ -53,6 +54,9 @@ export function ComponentPalette({ onCreateCustomComponent, onComponentAdded }: 
   const customComponents = useCustomComponentsStore((s) => s.components);
   const deleteCustomComponent = useCustomComponentsStore((s) => s.deleteComponent);
   const isCoarse = useIsCoarsePointer();
+  const region = useAppStore((s) => s.region);
+  const regionLabel =
+    AWS_REGIONS.find((r) => r.code === region)?.label ?? region;
 
   const allComponents: SystemComponent[] = [...customComponents, ...SYSTEM_COMPONENTS];
   const customIds = new Set(customComponents.map((c) => c.id));
@@ -199,10 +203,15 @@ export function ComponentPalette({ onCreateCustomComponent, onComponentAdded }: 
                   const accent = style.icon;
                   const iconBg = style.chip;
                   const itemIconUrl = awsIconUrl(item);
+                  // Availability is a warning, never a block: the tool teaches,
+                  // so you can still place the service and see why it's flagged.
+                  const unavailable = isUnavailableInRegion(item.id, region);
                   // Concept cards are keyed by the generic vocabulary, so AWS
                   // services look theirs up via the concept they represent.
                   const concept = CONCEPT_LIBRARY[item.concept ?? item.id];
-                  const tipText = concept?.whenToUse[0] ?? item.description;
+                  const tipText = unavailable
+                    ? `Not available in ${regionLabel} — you can still place it, but this design would not deploy there as drawn.`
+                    : concept?.whenToUse[0] ?? item.description;
                   const isCustom = customIds.has(item.id);
                   return (
                     <Tooltip key={item.id}>
@@ -231,7 +240,15 @@ export function ComponentPalette({ onCreateCustomComponent, onComponentAdded }: 
                                 <Icon className={`h-3.5 w-3.5 shrink-0 transition-colors ${accent}`} />
                               )}
                             </div>
-                            <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                            <span className={`min-w-0 flex-1 truncate ${unavailable ? "text-zinc-500" : ""}`}>
+                              {item.label}
+                            </span>
+                            {unavailable && (
+                              <AlertTriangle
+                                className="h-3 w-3 shrink-0 text-amber-400"
+                                aria-label={`Not available in ${regionLabel}`}
+                              />
+                            )}
                             {isCustom && (
                               <span className="shrink-0 rounded bg-cyan-500/15 px-1 text-[10px] font-semibold uppercase tracking-wider text-cyan-400">
                                 Custom
