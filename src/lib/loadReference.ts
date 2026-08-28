@@ -1,6 +1,6 @@
 import type { Node, Edge } from "@xyflow/react";
 import type { Problem } from "@/types/problem";
-import { getComponentById } from "@/data/components";
+import { getComponentById } from "@/data/componentLookup";
 import { useCanvasStore, type ComponentNodeData } from "@/store/canvasStore";
 import { useAppStore } from "@/store/appStore";
 

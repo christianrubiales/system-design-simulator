@@ -4,7 +4,7 @@ import { useState } from "react";
 import { X, Server } from "lucide-react";
 import { useCustomComponentsStore } from "@/store/customComponentsStore";
 import { useAppStore } from "@/store/appStore";
-import { COMPONENT_CATEGORIES } from "@/data/components";
+import { COMPONENT_CATEGORIES, CATEGORY_STYLE } from "@/data/components";
 import { ICON_MAP } from "@/lib/icons";
 import type { ComponentCategory } from "@/types/component";
 import { ModalShell } from "./ModalShell";
@@ -105,18 +105,18 @@ export function CreateComponentDialog({ open, onClose }: CreateComponentDialogPr
           {/* Category */}
           <div>
             <label className="mb-1 block text-xs text-zinc-400">Category</label>
-            <div className="grid grid-cols-5 gap-1">
+            <div className="grid grid-cols-3 gap-1">
               {COMPONENT_CATEGORIES.map((c) => (
                 <button
-                  key={c.key}
-                  onClick={() => setCategory(c.key as ComponentCategory)}
+                  key={c}
+                  onClick={() => setCategory(c as ComponentCategory)}
                   className={`rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors ${
-                    category === c.key
+                    category === c
                       ? "border border-cyan-500/30 bg-cyan-600/20 text-cyan-400"
                       : "border border-zinc-700 bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
                   }`}
                 >
-                  {c.label}
+                  {CATEGORY_STYLE[c].label}
                 </button>
               ))}
             </div>

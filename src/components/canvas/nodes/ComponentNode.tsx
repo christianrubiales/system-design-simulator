@@ -7,21 +7,12 @@ import type { ComponentNodeData } from "@/store/canvasStore";
 import { useCanvasStore } from "@/store/canvasStore";
 import { Server } from "lucide-react";
 import { ICON_MAP } from "@/lib/icons";
+import { CATEGORY_STYLE } from "@/data/components";
+import type { ComponentCategory } from "@/types/component";
 import { useIsCoarsePointer } from "@/hooks/useBreakpoint";
 import { useAppStore } from "@/store/appStore";
 
 type ComponentNode = Node<ComponentNodeData, "component">;
-
-// Each category gets a crisp, tinted icon "chip" so node types are
-// distinguishable at a glance — the identity lives in the chip, not a heavy
-// border, keeping the canvas calm (Linear/Railway-style).
-const CATEGORY_COLORS: Record<string, { chip: string; icon: string; ring: string }> = {
-  networking: { chip: "bg-blue-500/10", icon: "text-blue-400", ring: "ring-blue-500/25" },
-  compute: { chip: "bg-violet-500/10", icon: "text-violet-400", ring: "ring-violet-500/25" },
-  storage: { chip: "bg-amber-500/10", icon: "text-amber-400", ring: "ring-amber-500/25" },
-  messaging: { chip: "bg-emerald-500/10", icon: "text-emerald-400", ring: "ring-emerald-500/25" },
-  infrastructure: { chip: "bg-cyan-500/10", icon: "text-cyan-400", ring: "ring-cyan-500/25" },
-};
 
 const STATUS_DOT: Record<string, string> = {
   healthy: "bg-emerald-500",
@@ -33,7 +24,8 @@ const STATUS_DOT: Record<string, string> = {
 function ComponentNodeInner({ id, data, selected }: NodeProps<ComponentNode>) {
   const nodeData = data;
   const Icon = ICON_MAP[nodeData.icon] ?? Server;
-  const colors = CATEGORY_COLORS[nodeData.category] ?? CATEGORY_COLORS.compute;
+  const colors =
+    CATEGORY_STYLE[nodeData.category as ComponentCategory] ?? CATEGORY_STYLE.compute;
   const status = (nodeData.status as string) ?? "idle";
   const statusDot = STATUS_DOT[status] ?? STATUS_DOT.idle;
   const isBottleneck = nodeData.isBottleneck ?? false;

@@ -11,8 +11,9 @@ import {
 import {
   SYSTEM_COMPONENTS,
   COMPONENT_CATEGORIES,
-  getComponentById,
+  CATEGORY_STYLE,
 } from "@/data/components";
+import { getComponentById } from "@/data/componentLookup";
 import { CONCEPT_LIBRARY } from "@/data/conceptLibrary";
 import { Server, GripVertical, Plus, Search as SearchIcon, Sparkles, Trash2 } from "lucide-react";
 import { ICON_MAP } from "@/lib/icons";
@@ -20,23 +21,7 @@ import { useCanvasStore, type ComponentNodeData } from "@/store/canvasStore";
 import { useAppStore } from "@/store/appStore";
 import { useCustomComponentsStore } from "@/store/customComponentsStore";
 import { useIsCoarsePointer } from "@/hooks/useBreakpoint";
-import type { SystemComponent } from "@/types/component";
-
-const CATEGORY_ACCENT: Record<string, string> = {
-  networking: "text-blue-400",
-  compute: "text-violet-400",
-  storage: "text-amber-400",
-  messaging: "text-emerald-400",
-  infrastructure: "text-cyan-400",
-};
-
-const CATEGORY_BG: Record<string, string> = {
-  networking: "bg-blue-400/10",
-  compute: "bg-violet-400/10",
-  storage: "bg-amber-400/10",
-  messaging: "bg-emerald-400/10",
-  infrastructure: "bg-cyan-400/10",
-};
+import type { ComponentCategory, SystemComponent } from "@/types/component";
 
 interface ComponentPaletteProps {
   onCreateCustomComponent?: () => void;
@@ -160,14 +145,14 @@ export function ComponentPalette({ onCreateCustomComponent, onComponentAdded }: 
         )}
         {COMPONENT_CATEGORIES.map((cat) => {
           const items = allComponents.filter(
-            (c) => c.category === cat.key && matches(c),
+            (c) => c.category === cat && matches(c),
           );
           if (query !== "" && items.length === 0) return null;
           return (
-            <div key={cat.key}>
+            <div key={cat}>
               <div className="mb-2 flex items-center gap-2">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500">
-                  {cat.label}
+                  {CATEGORY_STYLE[cat].label}
                 </p>
                 <span className="flex h-4 min-w-4 items-center justify-center rounded bg-zinc-800 px-1 text-[11px] font-medium tabular-nums text-zinc-500">
                   {items.length}
@@ -178,8 +163,10 @@ export function ComponentPalette({ onCreateCustomComponent, onComponentAdded }: 
               <div className="space-y-0.5">
                 {items.map((item) => {
                   const Icon = ICON_MAP[item.icon] ?? Server;
-                  const accent = CATEGORY_ACCENT[item.category] ?? "text-cyan-400";
-                  const iconBg = CATEGORY_BG[item.category] ?? "bg-cyan-400/10";
+                  const style =
+                    CATEGORY_STYLE[item.category as ComponentCategory] ?? CATEGORY_STYLE.compute;
+                  const accent = style.icon;
+                  const iconBg = style.chip;
                   const concept = CONCEPT_LIBRARY[item.id];
                   const tipText = concept?.whenToUse[0] ?? item.description;
                   const isCustom = customIds.has(item.id);

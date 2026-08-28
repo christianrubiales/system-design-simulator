@@ -18,7 +18,7 @@ import { useCanvasStore, type ComponentNodeData } from "@/store/canvasStore";
 import { usePenStore } from "@/store/penStore";
 import { useAppStore } from "@/store/appStore";
 import { useHasHydrated } from "@/store/hydration";
-import { getComponentById } from "@/data/components";
+import { getComponentById } from "@/data/componentLookup";
 import { BookOpen, GraduationCap, Layers, Lock, MousePointer2, Sparkles, HelpCircle } from "lucide-react";
 import { motion } from "framer-motion";
 

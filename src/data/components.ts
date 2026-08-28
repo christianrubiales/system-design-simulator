@@ -1,5 +1,4 @@
-import type { SystemComponent } from "@/types/component";
-import { useCustomComponentsStore } from "@/store/customComponentsStore";
+import type { ComponentCategory, SystemComponent } from "@/types/component";
 
 export const SYSTEM_COMPONENTS: SystemComponent[] = [
   // Networking
@@ -448,16 +447,50 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   },
 ];
 
-export const COMPONENT_CATEGORIES = [
-  { key: "networking", label: "Networking" },
-  { key: "compute", label: "Compute" },
-  { key: "storage", label: "Storage" },
-  { key: "messaging", label: "Messaging" },
-  { key: "infrastructure", label: "Infrastructure" },
-] as const;
+/**
+ * Single source of truth for per-category color. ComponentNode and
+ * ComponentPalette both render from this — they previously kept separate,
+ * drifting copies of the same information.
+ */
+export const CATEGORY_STYLE: Record<
+  ComponentCategory,
+  { label: string; chip: string; icon: string; ring: string }
+> = {
+  networking: { label: "Networking", chip: "bg-blue-500/10", icon: "text-blue-400", ring: "ring-blue-500/25" },
+  compute: { label: "Compute", chip: "bg-violet-500/10", icon: "text-violet-400", ring: "ring-violet-500/25" },
+  containers: { label: "Containers", chip: "bg-indigo-500/10", icon: "text-indigo-400", ring: "ring-indigo-500/25" },
+  storage: { label: "Storage", chip: "bg-amber-500/10", icon: "text-amber-400", ring: "ring-amber-500/25" },
+  database: { label: "Database", chip: "bg-sky-500/10", icon: "text-sky-400", ring: "ring-sky-500/25" },
+  integration: { label: "Integration", chip: "bg-emerald-500/10", icon: "text-emerald-400", ring: "ring-emerald-500/25" },
+  analytics: { label: "Analytics", chip: "bg-teal-500/10", icon: "text-teal-400", ring: "ring-teal-500/25" },
+  security: { label: "Security", chip: "bg-rose-500/10", icon: "text-rose-400", ring: "ring-rose-500/25" },
+  observability: { label: "Observability", chip: "bg-cyan-500/10", icon: "text-cyan-400", ring: "ring-cyan-500/25" },
+  pattern: { label: "Patterns", chip: "bg-zinc-500/10", icon: "text-zinc-300", ring: "ring-zinc-500/25" },
+  // Legacy keys — retained so nodes persisted before the AWS catalog keep their color.
+  messaging: { label: "Messaging", chip: "bg-emerald-500/10", icon: "text-emerald-400", ring: "ring-emerald-500/25" },
+  infrastructure: { label: "Infrastructure", chip: "bg-cyan-500/10", icon: "text-cyan-400", ring: "ring-cyan-500/25" },
+};
 
-export function getComponentById(id: string): SystemComponent | undefined {
-  const builtin = SYSTEM_COMPONENTS.find((c) => c.id === id);
-  if (builtin) return builtin;
-  return useCustomComponentsStore.getState().getComponent(id);
-}
+/**
+ * Categories shown as palette sections, in display order.
+ *
+ * `messaging` and `infrastructure` are legacy keys still carried by catalog
+ * entries that have not been converted to AWS services yet. They MUST stay
+ * listed until every entry is recategorized, or their components silently
+ * disappear from the palette — a hole that type-checking cannot see.
+ * Remove them once no entry uses them (`npm run check:catalog` enforces this).
+ */
+export const COMPONENT_CATEGORIES = [
+  "networking",
+  "compute",
+  "containers",
+  "database",
+  "storage",
+  "integration",
+  "analytics",
+  "security",
+  "observability",
+  "pattern",
+  "messaging",
+  "infrastructure",
+] as const satisfies readonly ComponentCategory[];
