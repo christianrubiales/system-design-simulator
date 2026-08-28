@@ -15,6 +15,7 @@ import {
   UNAVAILABLE_REGIONS,
   UNKNOWN_AVAILABILITY,
 } from "../src/data/regionAvailability";
+import { PROBLEMS } from "../src/data/problems";
 
 const root = process.cwd();
 const errors: string[] = [];
@@ -139,6 +140,44 @@ for (const [serviceId, regions] of Object.entries(UNAVAILABLE_REGIONS)) {
 for (const id of UNKNOWN_AVAILABILITY) {
   if (!catalogIds.has(id)) {
     errors.push(`regionAvailability.ts: UNKNOWN_AVAILABILITY "${id}" is not a catalog entry`);
+  }
+}
+
+// --- 10-12. Reference solution topology (see the topology-corrections spec) ---
+// These encode three defect classes found in the shipped content: a
+// `rate-limiter` hop that is not an AWS service, queues wired straight into
+// datastores with no consumer, and nodes orphaned by rewiring.
+const QUEUE_OR_STREAM = new Set(["message-queue", "stream-processor", "msk", "sqs", "kinesis"]);
+const DATASTORES = new Set([
+  "nosql-db", "sql-db", "object-storage", "search", "timeseries-db",
+  "sharded-counter", "notification-service", "task-scheduler", "graph-db",
+  "data-warehouse", "geospatial-index",
+  "dynamodb", "rds", "s3", "opensearch", "timestream", "redshift", "neptune",
+]);
+
+for (const p of PROBLEMS) {
+  const ids = p.referenceSolution.nodes.map((n) => n.componentId);
+
+  // 10. Rate limiting is a capability of API Gateway / WAF / app code, not a hop.
+  if (ids.includes("rate-limiter")) {
+    errors.push(`problems.ts: "${p.id}" still places a rate-limiter node`);
+  }
+
+  // 11. A queue or stream never writes to a datastore itself — a consumer does.
+  for (const e of p.referenceSolution.edges) {
+    if (QUEUE_OR_STREAM.has(e.source) && DATASTORES.has(e.target)) {
+      errors.push(
+        `problems.ts: "${p.id}" wires ${e.source} -> ${e.target} with no consumer between`,
+      );
+    }
+  }
+
+  // 12. Rewiring must not strand a node with no edges at all.
+  const touched = new Set(p.referenceSolution.edges.flatMap((e) => [e.source, e.target]));
+  for (const id of ids) {
+    if (!touched.has(id)) {
+      errors.push(`problems.ts: "${p.id}" leaves "${id}" unconnected`);
+    }
   }
 }
 
