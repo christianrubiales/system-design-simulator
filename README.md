@@ -387,9 +387,9 @@ Open **http://localhost:3000** — that's it. Everything runs client-side; your 
 ## 🧪 Testing
 
 ```bash
-npm test          # 88 tests, ~1s
-npm run test:watch
-npm run build     # gates on check:catalog + test + tsc
+npm test           # run once — 88 tests, ~1s
+npm run test:watch # stay running; re-runs only the tests your last save affected
+npm run build      # gates on check:catalog + test + tsc
 ```
 
 Two layers, with different jobs:
