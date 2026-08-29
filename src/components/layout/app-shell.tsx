@@ -11,7 +11,7 @@ import { DesignCanvas } from "@/components/canvas/DesignCanvas";
 import { useAppStore } from "@/store/appStore";
 import { useCanvasStore, type ComponentNodeData } from "@/store/canvasStore";
 import { useSimulationStore } from "@/store/simulationStore";
-import { runSimulation } from "@/engine/simulator";
+import { runTickedSimulation } from "@/engine/ticks";
 import { scoreDesign } from "@/scoring/scorer";
 import { PROBLEMS } from "@/data/problems";
 import { loadReferenceIntoTab } from "@/lib/loadReference";
@@ -122,12 +122,15 @@ export function AppShell() {
     useSimulationStore.getState().setRunning(true);
 
     setTimeout(() => {
-      const result = runSimulation(
-        componentNodes,
-        edges,
-        config.requestsPerSec,
-        config.readRatio,
-      );
+      // Always time-stepped now. Under the "steady" scenario this converges to
+      // exactly what the snapshot engine computed — check-catalog asserts it —
+      // so scoring and cost keep reading the same final-tick numbers as before.
+      const result = runTickedSimulation(componentNodes, edges, config.requestsPerSec, {
+        scenario: config.scenario,
+        readRatio: config.readRatio,
+        autoscaling: config.autoscaling,
+        retryRate: config.retryRate,
+      });
 
       const updates = new Map<string, Record<string, unknown>>();
       for (const [nodeId, metrics] of result.nodeMetrics) {

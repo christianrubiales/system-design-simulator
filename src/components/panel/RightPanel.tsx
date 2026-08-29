@@ -14,6 +14,7 @@ import { useAppStore } from "@/store/appStore";
 import { getProblemById } from "@/data/problems";
 import { getConceptByComponentId } from "@/data/conceptLibrary";
 import { SimulationControls } from "./SimulationControls";
+import { ScenarioControls } from "./ScenarioControls";
 import { MetricsDisplay } from "./MetricsDisplay";
 import { ScoreReport } from "./ScoreReport";
 import { CapacityCalculator } from "./CapacityCalculator";
@@ -99,6 +100,8 @@ function RightTabs({ onSimulate }: { onSimulate: () => void }) {
         <ScrollArea className="h-full">
           <div className="p-3 space-y-4">
             <SimulationControls onSimulate={onSimulate} />
+            <Separator className="bg-zinc-800" />
+            <ScenarioControls />
             <Separator className="bg-zinc-800" />
             <MetricsDisplay />
           </div>

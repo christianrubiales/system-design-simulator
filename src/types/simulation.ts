@@ -39,4 +39,10 @@ export interface SimulationConfig {
   rampUp: boolean;
   /** Fraction of offered load that is reads, 0..1. Seeded from the problem. */
   readRatio: number;
+  /** Which load profile to run. Scoring always uses "steady". */
+  scenario: "steady" | "spike" | "ramp" | "outage";
+  /** Grow capacity under sustained load, with a one-tick lag. */
+  autoscaling: boolean;
+  /** Fraction of shed requests retried on the next tick. 0 disables. */
+  retryRate: number;
 }
