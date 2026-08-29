@@ -39,7 +39,7 @@ src/
     interview/    InterviewBar, phase panel, start dialog
     dialogs/      ModalShell (shared modal: focus trap/Escape/scroll) + Save/Load/Confirm/Support/Create*
     ui/           shadcn-style primitives, Toast
-  data/           components.ts (56 specs: 46 AWS services + 9 patterns + custom),
+  data/           components.ts (84 specs: 74 AWS services + 9 patterns + custom),
                   conceptMap.ts (concept bridge), upgradeNodeData.ts,
                   problems.ts (35), conceptLibrary.ts,
                   interviewData.ts, tradeoffCards.ts (21), learningPath.ts

@@ -47,7 +47,7 @@ It runs entirely in your browser. No account, no backend, no data leaves your ma
 ## Table of Contents
 
 - [Features](#-features)
-  - [46 AWS Services + 9 Patterns](#46-aws-services--9-architectural-patterns)
+  - [74 AWS Services + 9 Patterns](#74-aws-services--9-architectural-patterns)
   - [Traffic Simulation](#traffic-simulation)
   - [Cost Estimates](#-cost-estimates)
   - [Connectivity-Aware Scoring](#connectivity-aware-scoring)
@@ -76,22 +76,26 @@ It runs entirely in your browser. No account, no backend, no data leaves your ma
 
 <br/>
 
-### 46 AWS Services + 9 Architectural Patterns
+### 74 AWS Services + 9 Architectural Patterns
 
-A real AWS toolbox — **46 services** with their official architecture icons, plus **9 pattern nodes** for the things that are techniques rather than products.
+A real AWS toolbox — **74 services** with their official architecture icons, plus **9 pattern nodes** for the things that are techniques rather than products.
 
 | Category | Services |
 |----------|-----------|
-| **Networking** | Route 53 · CloudFront · ALB · NLB · API Gateway · VPC · NAT Gateway · PrivateLink · Global Accelerator |
-| **Compute** | EC2 · Lambda · Fargate |
-| **Containers** | ECS · EKS |
+| **Networking** | Route 53 · CloudFront · ALB · NLB · API Gateway · VPC · NAT Gateway · PrivateLink · Global Accelerator · Transit Gateway · Direct Connect |
+| **Compute** | EC2 · Lambda · Fargate · Batch · App Runner · Elastic Beanstalk · Lightsail · Auto Scaling · Amplify |
+| **Containers** | ECS · EKS · ECR |
 | **Database** | RDS · Aurora · DynamoDB · ElastiCache · DocumentDB · Neptune · Timestream |
-| **Storage** | S3 · EFS |
-| **Integration** | SQS · SNS · EventBridge · EventBridge Scheduler · Step Functions · AppSync · App Mesh |
-| **Analytics** | Kinesis · Firehose · MSK · OpenSearch · Redshift · Athena · Glue |
-| **Security** | WAF · Cognito · IAM · Secrets Manager · KMS |
-| **Observability** | CloudWatch · X-Ray · Cloud Map · AppConfig |
+| **Storage** | S3 · EFS · FSx · Backup |
+| **Integration** | SQS · SNS · EventBridge · EventBridge Scheduler · Step Functions · AppSync · App Mesh · Amazon MQ · SES · IoT Core |
+| **Analytics** | Kinesis · Firehose · MSK · OpenSearch · Redshift · Athena · Glue · EMR |
+| **Security** | WAF · Cognito · IAM · Secrets Manager · KMS · Shield · Certificate Manager |
+| **Observability** | CloudWatch · X-Ray · Cloud Map · AppConfig · CloudTrail · Systems Manager · Organizations |
+| **AI & ML** | Bedrock · SageMaker · Rekognition · Textract · MediaConvert |
+| **Developer Tools** | CodePipeline · CodeBuild · CodeDeploy |
 | **Patterns** | Circuit Breaker · ID Generator · Sharded Counter · Distributed Lock · Coordination Service · Geospatial Index · Reverse Proxy · Origin Shield · Vector DB |
+
+The catalog covers the services that change an interview answer, plus a longer tail (developer tools, governance, ML) that is available without being recommended.
 
 Pattern nodes exist because rate limiting, sharded counters, and distributed locks are *techniques* — in AWS you enable API Gateway throttling or use a DynamoDB conditional write, not drag a box called "Rate Limiter".
 
