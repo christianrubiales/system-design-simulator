@@ -18,6 +18,8 @@ import {
 import { PROBLEMS } from "../src/data/problems";
 import { buildReferenceGraph } from "../src/lib/loadReference";
 import { scoreDesign } from "../src/scoring/scorer";
+import { runSimulation } from "../src/engine/simulator";
+import { runTickedSimulation } from "../src/engine/ticks";
 import { validateConnection, SERVICE_PORTS } from "../src/data/connectionRules";
 import { SERVICE_CONFIG, deriveCapacity, defaultConfig } from "../src/data/serviceConfig";
 import { INSTANCE_FAMILIES } from "../src/data/instanceFamilies";
@@ -304,6 +306,50 @@ for (const c of SYSTEM_COMPONENTS) {
   const broken = totals.filter((t) => t.total < 10);
   for (const b of broken) {
     errors.push(`scoring: "${b.id}" scores ${b.total}/100 — below the floor of 10`);
+  }
+}
+
+// --- 20. Time-stepped engine must converge to the steady-state answer ---
+// The snapshot engine is the oracle for the tick engine. Under constant load a
+// ticked run settles into exactly what runSimulation computes; a mismatch means
+// the tick model corrupts propagation, not that the tolerance is too tight.
+{
+  let worstDrift = 0;
+  let worstWhere = "";
+  for (const p of PROBLEMS) {
+    const { nodes, edges } = buildReferenceGraph(p);
+    const steady = runSimulation(nodes, edges, 100000, 0.9);
+    const ticked = runTickedSimulation(nodes, edges, 100000, {
+      scenario: "steady",
+      ticks: 20,
+      readRatio: 0.9,
+    });
+    for (const n of nodes) {
+      const a = steady.nodeMetrics.get(n.id);
+      const b = ticked.nodeMetrics.get(n.id);
+      if (!a || !b) continue;
+      const drift = Math.abs(b.incomingQPS - a.incomingQPS) / Math.max(1, a.incomingQPS);
+      if (drift > worstDrift) {
+        worstDrift = drift;
+        worstWhere = `${p.id}/${String(n.data.componentId)}`;
+      }
+    }
+    // Per-tick invariants that must hold regardless of scenario.
+    for (const s of ticked.series) {
+      if (s.deliveredQPS > s.offeredQPS + 1e-6) {
+        errors.push(`ticks: "${p.id}" tick ${s.t} delivered more than was offered`);
+        break;
+      }
+      if (s.backlogTotal < 0) {
+        errors.push(`ticks: "${p.id}" tick ${s.t} has negative backlog`);
+        break;
+      }
+    }
+  }
+  if (worstDrift > 0.01) {
+    errors.push(
+      `ticks: steady-state convergence drifts ${(worstDrift * 100).toFixed(2)}% at ${worstWhere} — the tick model disagrees with the snapshot engine`,
+    );
   }
 }
 
