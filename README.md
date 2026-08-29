@@ -310,16 +310,32 @@ A node's ceiling is `vCPU × throughput-per-vCPU × instances`, where vCPU and m
 
 Tail latency comes from queueing, so the gap between p50 and p99 widens as a node approaches saturation rather than being a fixed multiple. Async hops — queues, notifications, monitoring — are excluded from user-facing latency.
 
+### Time-stepped: scenarios, backlog, and feedback
+
+The simulation runs **120 one-second ticks**, not a single snapshot, so behaviour that only exists over time becomes visible:
+
+| Scenario | What it shows |
+|---|---|
+| **Steady** | Constant load. The assessment scenario — converges to the steady-state answer. |
+| **Spike** | A sudden 4× burst. Does your queue absorb it? Autoscaling won't — it arrives too late. |
+| **Ramp** | Gradual growth to 3×. Slow enough for autoscaling to keep up, if you have it. |
+| **Consumer outage** | A downstream service goes dark. A queue retains the work; without one it's lost. |
+
+Three feedback mechanisms, all with a deliberate **one-tick lag** — which is the physical truth, and the reason autoscaling can't rescue a sudden spike:
+
+- **Queue backlog.** A queue drains at the rate its *consumer* can absorb, not its own ceiling. SQS accepts 100k msg/s happily; the backlog forms because the Lambda behind it takes 2k/s. Scrub the timeline and watch it build and drain.
+- **Autoscaling.** Capacity grows under sustained high utilization and shrinks when load falls, damped by a moving average.
+- **Retry amplification.** Shed requests retry, adding load to an already-saturated service. Load climbing to 4.6× baseline from a single failing node is flagged as a **retry storm** — the failure mode that turns a partial outage into a total one.
+
+Scrubbing the timeline replays each tick onto the canvas, so you can watch utilization spread through the design.
+
+**Scoring always uses Steady**, so grades stay comparable between designs regardless of which scenario you were exploring.
+
 ### Known limits
 
-Being explicit about what this model **cannot** show:
-
-- **No time dimension.** A queue cannot absorb a burst and drain it, because there are no ticks to drain across. Queues are modelled as capacity, not as buffers.
-- **No autoscaling response.** Capacity is whatever you configured; nothing reacts to sustained load.
-- **No retry amplification.** Retry storms are a feedback loop — load causes failures, failures cause retries, retries cause load — and a snapshot flattens that into a constant, which teaches the arithmetic without the lesson.
-- **Throughput is not linear in vCPU**, and databases usually saturate on IO or connections before CPU. Derived capacity is a teaching estimate, not a benchmark.
-
-**Time-stepped simulation** — queue backlog accumulating and draining, autoscaling reacting, retry storms — is a planned follow-up. It is deliberately not bolted onto the snapshot model, because every invariant the current engine gets right (topological ordering, cycle handling, disconnected subgraphs, throughput capping) would have to be re-established per tick.
+- **Throughput is not linear in vCPU**, and databases usually saturate on IO or connections before CPU. Derived capacity is a teaching estimate, not a benchmark — the UI says so.
+- **Autoscaling is modelled generically**, not as a specific AWS Auto Scaling or Application Auto Scaling policy, and ignores instance warm-up time.
+- **Retry behaviour is a single global rate**, not per-client policies with jitter and backoff.
 
 ---
 
