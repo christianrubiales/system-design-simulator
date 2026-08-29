@@ -41,6 +41,30 @@ describe("pricing data", () => {
   });
 });
 
+describe("analytics services", () => {
+  const line = (id: string, config: Record<string, string | number | boolean>) =>
+    estimateCost([testNode("n", id, { config })], null, "us-east-1");
+
+  it("prices Redshift by node type and count", () => {
+    const b = line("redshift", { nodeType: "ra3.large" });
+    expect(b.monthlyTotal).toBeCloseTo(0.543 * 730, 1);
+    expect(b.unpriced).toHaveLength(0);
+  });
+
+  it("prices Athena per terabyte scanned", () => {
+    expect(line("athena", { tbScannedPerMonth: 10 }).monthlyTotal).toBeCloseTo(50, 2);
+  });
+
+  it("prices Glue per DPU-hour", () => {
+    expect(line("glue", { dpuHoursPerMonth: 200 }).monthlyTotal).toBeCloseTo(88, 2);
+  });
+
+  it("does not confuse Redshift node rates with concurrency-scaling rates", () => {
+    // Node:<type> is hourly; CS:<type> is per SECOND — a 3600x difference.
+    expect(PRICING.redshift.nodeHourly["ra3.large"]).toBeGreaterThan(0.1);
+  });
+});
+
 describe("cost estimation", () => {
   const price = (nodes: Parameters<typeof estimateCost>[0], region = "us-east-1") =>
     estimateCost(nodes, null, region).monthlyTotal;

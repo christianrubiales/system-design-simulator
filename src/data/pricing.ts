@@ -7,7 +7,7 @@
 // differ by 30-70% with commitments. Prices are USD.
 
 export const PRICING_VERSION = "20260821071526";
-export const PRICING_FETCHED = "2026-08-28";
+export const PRICING_FETCHED = "2026-08-29";
 
 /** On-demand USD per hour, by instance/node/db class. */
 export const INSTANCE_HOURLY: Record<string, number> = {
@@ -222,6 +222,20 @@ export const PRICING = {
 "cloudfront": {
   "egressGB": 0.085,
   "perRequestHttps": 0.000001
+},
+"redshift": {
+  "nodeHourly": {
+    "ra3.large": 0.543,
+    "ra3.4xlarge": 3.26,
+    "ra3.16xlarge": 13.04,
+    "dc2.large": 0.25
+  }
+},
+"athena": {
+  "perTBScanned": 5
+},
+"glue": {
+  "perDPUHour": 0.44
 },
 "natGateway": {
   "hourly": 0.045,

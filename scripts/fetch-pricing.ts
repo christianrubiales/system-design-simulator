@@ -164,6 +164,9 @@ async function main() {
   const apigw = await offer("AmazonApiGateway", "us-east-1");
   const kin = await offer("AmazonKinesis", "us-east-1");
   const cf = await offer("AmazonCloudFront");
+  const rs = await offer("AmazonRedshift", "us-east-1");
+  const ath = await offer("AmazonAthena", "us-east-1");
+  const glue = await offer("AWSGlue", "us-east-1");
 
   const ut = (name: string) => (a: Record<string, string>) => a.usagetype === name;
 
@@ -204,6 +207,20 @@ async function main() {
       egressGB: findPrice(cf, ut("US-DataTransfer-Out-Bytes")),
       perRequestHttps: findPrice(cf, ut("US-Requests-Tier2-HTTPS")),
     },
+    redshift: {
+      // "Node:<type>" is the cluster node rate. The "CS:<type>" SKUs are
+      // concurrency scaling, priced per SECOND — a 3600x difference if confused.
+      nodeHourly: {
+        "ra3.large": findPrice(rs, ut("Node:ra3.large")),
+        "ra3.4xlarge": findPrice(rs, ut("Node:ra3.4xlarge")),
+        "ra3.16xlarge": findPrice(rs, ut("Node:ra3.16xlarge")),
+        "dc2.large": findPrice(rs, ut("Node:dc2.large")),
+      },
+    },
+    athena: { perTBScanned: findPrice(ath, ut("USE1-DataScannedInTB")) },
+    // Glue publishes many DPU-hour variants (Flex, Gen2, interactive, crawler);
+    // this is the standard ETL rate.
+    glue: { perDPUHour: findPrice(glue, ut("USE1-ETL-DPU-Hour")) },
     // Sourced from the EC2 catalogue: "$0.045 per NAT Gateway Hour" and
     // "$0.045 per GB Data Processed by NAT Gateways".
     natGateway: { hourly: 0.045, perGB: 0.045 },
@@ -259,6 +276,9 @@ async function main() {
     ["apiGateway.restPerRequest", pricing.apiGateway.restPerRequest],
     ["cloudfront.egressGB", pricing.cloudfront.egressGB],
     ["kinesis.shardHour", pricing.kinesis.shardHour],
+    ["redshift ra3.large", pricing.redshift.nodeHourly["ra3.large"]],
+    ["athena.perTBScanned", pricing.athena.perTBScanned],
+    ["glue.perDPUHour", pricing.glue.perDPUHour],
   ];
   for (const [name, v] of mustBePositive) {
     if (!v || v <= 0) failures.push(`${name} is missing or zero`);

@@ -355,9 +355,54 @@ export const SERVICE_CONFIG: Record<string, ServiceConfigSpec> = {
     ],
     throughput: { per: "vcpu", qps: 12500, note: "Assumes small messages with batching, which Kafka handles very efficiently." },
   },
-  redshift: fixed(500, "Analytical warehouses run few heavy queries; concurrency, not QPS, is the real limit."),
-  athena: fixed(25, "Serverless and quota-limited to roughly 20-25 concurrent queries per account."),
-  glue: fixed(100, "Batch ETL — throughput is job-shaped, not request-shaped."),
+  redshift: {
+    params: [
+      {
+        id: "nodeType",
+        kind: "choice",
+        label: "Node type",
+        options: [
+          { value: "dc2.large", label: "dc2.large", help: "Local SSD storage. Cheapest entry point for a small warehouse." },
+          { value: "ra3.large", label: "ra3.large", help: "Managed storage decoupled from compute — scale each independently." },
+          { value: "ra3.4xlarge", label: "ra3.4xlarge" },
+          { value: "ra3.16xlarge", label: "ra3.16xlarge" },
+        ],
+        default: "ra3.large",
+        help: "Node count uses the Instances slider. This affects cost only — analytical capacity is concurrency-bound, not QPS-bound.",
+      },
+    ],
+    throughput: { per: "fixed", qps: 500, note: "Analytical warehouses run few heavy queries; concurrency, not QPS, is the real limit." },
+  },
+  athena: {
+    params: [
+      {
+        id: "tbScannedPerMonth",
+        kind: "number",
+        label: "Data scanned",
+        unit: "TB/month",
+        default: 10,
+        min: 0,
+        max: 100000,
+        help: "Athena bills per terabyte scanned, so partitioning and columnar formats like Parquet cut the bill directly — not just the latency.",
+      },
+    ],
+    throughput: { per: "fixed", qps: 25, note: "Serverless and quota-limited to roughly 20-25 concurrent queries per account." },
+  },
+  glue: {
+    params: [
+      {
+        id: "dpuHoursPerMonth",
+        kind: "number",
+        label: "DPU hours",
+        unit: "DPU-h/month",
+        default: 200,
+        min: 0,
+        max: 1000000,
+        help: "A Glue job consumes DPUs for its duration — 10 DPUs running 2 hours daily is roughly 600 DPU-hours a month.",
+      },
+    ],
+    throughput: { per: "fixed", qps: 100, note: "Batch ETL — throughput is job-shaped, not request-shaped." },
+  },
   firehose: fixed(50000, "Delivery-stream throughput scales automatically on request."),
 
   // ---------- Storage ----------

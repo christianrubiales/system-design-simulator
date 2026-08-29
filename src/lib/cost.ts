@@ -153,6 +153,34 @@ export function estimateCost(
         }
         break;
       }
+      case "redshift": {
+        const nodeType = String(c.nodeType ?? "ra3.large");
+        const hourly = (PRICING.redshift.nodeHourly as Record<string, number | null>)[nodeType] ?? 0;
+        push(
+          "instances",
+          hourly * replicas * HOURS_PER_MONTH,
+          `${replicas} x ${nodeType} @ $${hourly}/hr`,
+        );
+        break;
+      }
+      case "athena": {
+        const tb = Number(c.tbScannedPerMonth ?? 0);
+        push(
+          "requests",
+          tb * (PRICING.athena.perTBScanned ?? 0),
+          `${tb.toLocaleString()} TB scanned @ $${PRICING.athena.perTBScanned}/TB`,
+        );
+        break;
+      }
+      case "glue": {
+        const dpu = Number(c.dpuHoursPerMonth ?? 0);
+        push(
+          "provisioned",
+          dpu * (PRICING.glue.perDPUHour ?? 0),
+          `${dpu.toLocaleString()} DPU-hours @ $${PRICING.glue.perDPUHour}/DPU-h`,
+        );
+        break;
+      }
       case "efs": {
         const gb = Number(c.storageGB ?? 0);
         push("storage", gb * 0.3, `${gb.toLocaleString()} GB @ $0.30/GB-mo`);
@@ -191,7 +219,7 @@ export function estimateCost(
       }
       default:
         // Services with an instance line are priced; the rest we do not claim to price.
-        if (!sizeParam && spec && spec.params.length >= 0 && !FREE_SERVICES.has(id)) {
+        if (!sizeParam && spec && !FREE_SERVICES.has(id)) {
           unpriced.add(label);
         }
     }
