@@ -116,6 +116,24 @@ for (const [concept, target] of Object.entries(CONCEPT_DEFAULT)) {
   }
 }
 
+// --- 7b. The bridge must be consistent in BOTH directions ---
+// Check 6 verifies concept -> service resolves. It does not verify the reverse:
+// that the target service actually declares the role it is the default for.
+// App Mesh lost `concept: "service-mesh"` during a catalog edit and nothing
+// caught it — reference solutions still resolved, but scoring could never
+// credit a service mesh, silently, exactly like the 27/100 outage.
+for (const [concept, target] of Object.entries(CONCEPT_DEFAULT)) {
+  if (target === null) continue;
+  const spec = SYSTEM_COMPONENTS.find((c) => c.id === target);
+  if (!spec) continue; // check 6 reports this
+  const declared = spec.concept === concept || (spec.satisfies ?? []).includes(concept as Concept);
+  if (!declared) {
+    errors.push(
+      `components.ts: "${target}" is the default for concept "${concept}" but declares neither concept nor satisfies for it — scoring will never credit it`,
+    );
+  }
+}
+
 // --- 8. Every entry's category must be a palette section ---
 // An entry in an unlisted category compiles, builds, and then is invisible in
 // the palette. Only this check catches it.

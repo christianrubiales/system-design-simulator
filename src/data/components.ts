@@ -509,6 +509,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "glue",
     label: "Glue",
+    satisfies: ["data-warehouse"],
     category: "analytics",
     icon: "GitBranch",
     awsIcon: "glue",
@@ -545,6 +546,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
 {
     id: "app-mesh",
     label: "App Mesh",
+    concept: "service-mesh",
     category: "integration",
     icon: "Compass",
     awsIcon: "app-mesh",
@@ -1049,6 +1051,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "app-runner",
     label: "App Runner",
+    satisfies: ["app-server"],
     category: "compute",
     icon: "Server",
     awsIcon: "app-runner",
@@ -1065,6 +1068,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "beanstalk",
     label: "Elastic Beanstalk",
+    satisfies: ["app-server"],
     category: "compute",
     icon: "Server",
     awsIcon: "beanstalk",
@@ -1081,6 +1085,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "lightsail",
     label: "Lightsail",
+    satisfies: ["app-server"],
     category: "compute",
     icon: "Server",
     awsIcon: "lightsail",
@@ -1145,6 +1150,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "fsx",
     label: "FSx",
+    satisfies: ["file-store"],
     category: "storage",
     icon: "FolderOpen",
     awsIcon: "fsx",
@@ -1161,6 +1167,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "ses",
     label: "SES",
+    satisfies: ["notification-service"],
     category: "integration",
     icon: "Bell",
     awsIcon: "ses",
@@ -1177,6 +1184,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "mq",
     label: "Amazon MQ",
+    satisfies: ["message-queue", "pub-sub"],
     category: "integration",
     icon: "MessageSquare",
     awsIcon: "mq",
@@ -1193,6 +1201,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "iot-core",
     label: "IoT Core",
+    satisfies: ["pub-sub", "stream-processor"],
     category: "integration",
     icon: "Radio",
     awsIcon: "iot-core",
@@ -1209,6 +1218,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "emr",
     label: "EMR",
+    satisfies: ["data-warehouse"],
     category: "analytics",
     icon: "Warehouse",
     awsIcon: "emr",
@@ -1433,6 +1443,7 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
   {
     id: "amplify",
     label: "Amplify",
+    satisfies: ["app-server", "cdn"],
     category: "compute",
     icon: "Cloudy",
     awsIcon: "amplify",
