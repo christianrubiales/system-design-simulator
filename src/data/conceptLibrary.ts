@@ -196,13 +196,13 @@ export const CONCEPT_LIBRARY: Record<string, ComponentConcept> = {
     ],
     keyTradeoffs: [
       "Too strict = legitimate users get blocked; too lenient = insufficient protection",
-      "Distributed rate limiting requires shared state (Redis) which adds latency and a dependency",
+      "Distributed rate limiting requires shared state (ElastiCache) which adds latency and a dependency",
       "Algorithm choice: token bucket allows bursts, sliding window is smoother but more memory-intensive",
       "Client-side vs server-side: client-side can be bypassed, server-side adds latency to every request",
     ],
     interviewTips: [
       "Compare token bucket vs sliding window vs fixed window algorithms and their burst behavior",
-      "Mention Redis-backed distributed rate limiting for multi-instance deployments",
+      "In AWS, reach for an API Gateway usage plan or a WAF rate-based rule before building your own; app-level limiting over ElastiCache is the fallback when you need custom logic",
       "Discuss rate limiting headers (X-RateLimit-Remaining, Retry-After) for good API UX",
     ],
     commonPatterns: [
@@ -230,7 +230,7 @@ export const CONCEPT_LIBRARY: Record<string, ComponentConcept> = {
       "Event-driven compute with sporadic traffic — consider serverless (Lambda) to avoid idle costs",
     ],
     keyTradeoffs: [
-      "Stateless = easy to scale, but requires external session storage (Redis, DB) for user state",
+      "Stateless = easy to scale, but requires external session storage (ElastiCache or DynamoDB) for user state",
       "Container vs VM: containers start faster and pack denser, but VMs offer stronger isolation",
       "Auto-scaling lag: spinning up new instances takes 30s-2min — pre-warm for predictable spikes",
       "Cost: always-on servers vs serverless — breakeven depends on traffic consistency",
@@ -331,7 +331,7 @@ export const CONCEPT_LIBRARY: Record<string, ComponentConcept> = {
     whenNotToUse: [
       "Complex queries with multi-table JOINs — NoSQL data modeling requires denormalization",
       "Strict ACID transactions across multiple entities (use SQL or NewSQL instead)",
-      "Small-scale applications where a simple PostgreSQL instance handles everything",
+      "Small-scale applications where a single RDS instance handles everything",
     ],
     keyTradeoffs: [
       "Schema flexibility is a double-edged sword — no schema enforcement can lead to data quality issues",
@@ -376,7 +376,7 @@ export const CONCEPT_LIBRARY: Record<string, ComponentConcept> = {
     interviewTips: [
       "Always mention your cache invalidation strategy — interviewers look for this",
       "Discuss cache-aside vs write-through vs write-behind and WHY you chose one",
-      "Mention Redis Cluster for horizontal scaling and HA",
+      "Mention ElastiCache cluster mode for horizontal scaling, and Multi-AZ with automatic failover for HA",
     ],
     commonPatterns: [
       { name: "Cache-Aside (Lazy Loading)", description: "App checks cache first, on miss reads from DB and populates cache" },
@@ -475,13 +475,13 @@ export const CONCEPT_LIBRARY: Record<string, ComponentConcept> = {
     keyTradeoffs: [
       "Near-real-time: indexing has a delay (usually 1-2 seconds) before documents become searchable",
       "Denormalized data: search index duplicates data from primary DB, requiring sync pipelines",
-      "Resource intensive: Elasticsearch clusters need significant RAM for inverted indexes and field data",
+      "Resource intensive: OpenSearch data nodes need significant RAM for inverted indexes and field data — memory-optimized instance classes are the norm",
       "Relevance tuning is complex — BM25 scoring, boosting, synonyms require ongoing iteration",
     ],
     interviewTips: [
       "Explain inverted indexes and how they enable fast full-text search",
       "Discuss the data sync pipeline from primary DB to search index (CDC, event-driven updates)",
-      "Mention Elasticsearch vs dedicated search (Algolia, Meilisearch) trade-offs for your use case",
+      "Weigh OpenSearch against a hosted search product (Algolia, Meilisearch) — you trade operational control for not running a cluster",
     ],
     commonPatterns: [
       { name: "Inverted Index", description: "Map each term to a list of documents containing it — the core data structure of search engines" },
@@ -515,7 +515,7 @@ export const CONCEPT_LIBRARY: Record<string, ComponentConcept> = {
     ],
     interviewTips: [
       "Always mention idempotent consumers when discussing at-least-once delivery",
-      "Distinguish Kafka (log-based, replay) from SQS/RabbitMQ (traditional queue, delete after consume)",
+      "Distinguish log semantics (Kinesis or MSK — replayable, multiple readers) from queue semantics (SQS — delete after consume). Tasks want a queue; events want a log",
       "Discuss dead-letter queues for handling poison messages that repeatedly fail processing",
     ],
     commonPatterns: [
@@ -649,18 +649,18 @@ export const CONCEPT_LIBRARY: Record<string, ComponentConcept> = {
     ],
     keyTradeoffs: [
       "Stateful connections: each client is pinned to a server, complicating horizontal scaling",
-      "Need a pub/sub layer (Redis) for broadcasting messages across multiple WebSocket server instances",
+      "Need a pub/sub layer for broadcasting across WebSocket server instances — AppSync handles this for you, or ElastiCache Pub/Sub if you run your own",
       "Connection limits: each server can handle ~50k-100k concurrent connections depending on resources",
       "Reconnection logic is complex — handle network switches, mobile sleep, and graceful degradation",
     ],
     interviewTips: [
-      "Explain the scaling challenge: sticky connections need a pub/sub backplane (Redis Pub/Sub or Kafka)",
-      "Mention connection-to-server mapping stored in Redis for targeted message delivery",
+      "Explain the scaling challenge: sticky connections need a pub/sub backplane. AppSync manages it; a self-run fleet needs ElastiCache Pub/Sub behind it",
+      "Mention connection-to-server mapping stored in ElastiCache or DynamoDB for targeted message delivery",
       "Discuss fallback strategies: WebSocket -> SSE -> long polling for maximum compatibility",
     ],
     commonPatterns: [
-      { name: "Pub/Sub Backplane", description: "Redis Pub/Sub or Kafka sits behind WebSocket servers to broadcast messages across all instances" },
-      { name: "Connection Registry", description: "Map user IDs to WebSocket server IPs in Redis for targeted message delivery" },
+      { name: "Pub/Sub Backplane", description: "AppSync, or ElastiCache Pub/Sub behind a self-run fleet, broadcasts messages across all instances" },
+      { name: "Connection Registry", description: "Map user IDs to WebSocket server IPs in ElastiCache or DynamoDB for targeted message delivery" },
       { name: "Room/Channel Model", description: "Group connections into rooms/channels so messages broadcast only to relevant subscribers" },
     ],
     realWorldExamples: [
@@ -721,7 +721,7 @@ export const CONCEPT_LIBRARY: Record<string, ComponentConcept> = {
       "Exactly-once semantics require checkpointing and idempotent sinks — adds complexity and overhead",
       "Late-arriving data: watermarks and allowed lateness must be configured to handle out-of-order events",
       "State management: stateful stream processing (aggregations, joins) requires fault-tolerant state stores",
-      "Operational complexity: Flink/Kafka Streams require expertise to tune parallelism, checkpointing, and backpressure",
+      "Operational complexity: stream processing (Managed Service for Apache Flink, or Lambda consumers on Kinesis) requires tuning parallelism, checkpointing, and backpressure",
     ],
     interviewTips: [
       "Explain windowing concepts: tumbling, sliding, session windows and when to use each",
@@ -855,7 +855,7 @@ export const CONCEPT_LIBRARY: Record<string, ComponentConcept> = {
     whenNotToUse: [
       "Real-time transactional processing (OLTP) — warehouses have seconds-to-minutes query latency",
       "Low-latency serving for user-facing features — use a cache or operational database",
-      "Small datasets under 10 GB where PostgreSQL analytics are fast enough",
+      "Small datasets under 10 GB where analytical queries against RDS are fast enough",
     ],
     keyTradeoffs: [
       "Columnar storage = fast aggregations but slow for point lookups and row-level operations",
@@ -965,7 +965,7 @@ export const CONCEPT_LIBRARY: Record<string, ComponentConcept> = {
     keyTradeoffs: [
       "Safety vs liveness: Redlock debates — can a Redis-based lock guarantee mutual exclusion during network partitions?",
       "Lock expiry: too short = premature release during GC pauses; too long = blocking on holder crash",
-      "Performance: acquiring a distributed lock adds network round-trips (5-15ms with Redis)",
+      "Performance: acquiring a distributed lock adds network round-trips (single-digit ms against ElastiCache)",
       "Fencing tokens: without them, an expired lock holder can still write — causing data corruption",
     ],
     interviewTips: [
@@ -1077,7 +1077,7 @@ export const CONCEPT_LIBRARY: Record<string, ComponentConcept> = {
       "Discuss how YouTube counts views: sharded writes + periodic batch aggregation",
     ],
     commonPatterns: [
-      { name: "Redis Sharded Counter", description: "N Redis keys per logical counter; INCR random shard on write, MGET all shards on read" },
+      { name: "Redis Sharded Counter", description: "N ElastiCache keys per logical counter; INCR a random shard on write, MGET all shards on read" },
       { name: "Database Counter Table", description: "N rows per counter; random row on write, SUM on read with caching" },
       { name: "Approximate Counter", description: "Probabilistic counting (HyperLogLog) for unique counts; Count-Min Sketch for frequency" },
     ],
