@@ -16,10 +16,6 @@ import {
   UNKNOWN_AVAILABILITY,
 } from "../src/data/regionAvailability";
 import { PROBLEMS } from "../src/data/problems";
-import { buildReferenceGraph } from "../src/lib/loadReference";
-import { scoreDesign } from "../src/scoring/scorer";
-import { runSimulation } from "../src/engine/simulator";
-import { runTickedSimulation } from "../src/engine/ticks";
 import { validateConnection, SERVICE_PORTS } from "../src/data/connectionRules";
 import { SERVICE_CONFIG, deriveCapacity, defaultConfig } from "../src/data/serviceConfig";
 import { INSTANCE_FAMILIES } from "../src/data/instanceFamilies";
@@ -273,85 +269,10 @@ for (const c of SYSTEM_COMPONENTS) {
   }
 }
 
-// --- 19. Reference solutions must score well ---
-// They are the app's own model answers. When the catalog moved to AWS ids, 86
-// hardcoded presence checks silently began returning false and these fell to an
-// average of 27/100 with nobody noticing. This assertion turns that entire bug
-// class into a build failure.
-//
-// The floor is deliberately low: web-crawler, message-queue-design, and
-// distributed-cache are "design the primitive" problems, and the rubric judges
-// user-facing web architectures, so they score legitimately lower. The average
-// and the count-above-60 are what actually catch a regression.
-{
-  const totals: { id: string; total: number }[] = [];
-  for (const p of PROBLEMS) {
-    const { nodes, edges } = buildReferenceGraph(p);
-    const r = scoreDesign(nodes, edges);
-    totals.push({ id: p.id, total: r.total });
-    for (const c of r.categories) {
-      if (c.score < 0 || c.score > 20) {
-        errors.push(`scoring: "${p.id}" category "${c.category}" scored ${c.score}, outside 0..20`);
-      }
-    }
-  }
-  const average = totals.reduce((s, t) => s + t.total, 0) / totals.length;
-  const strong = totals.filter((t) => t.total >= 60).length;
-  if (average < 70) {
-    errors.push(`scoring: reference solutions average ${average.toFixed(1)}/100, expected >= 70`);
-  }
-  if (strong < 30) {
-    errors.push(`scoring: only ${strong}/35 reference solutions score >= 60, expected at least 30`);
-  }
-  const broken = totals.filter((t) => t.total < 10);
-  for (const b of broken) {
-    errors.push(`scoring: "${b.id}" scores ${b.total}/100 — below the floor of 10`);
-  }
-}
-
-// --- 20. Time-stepped engine must converge to the steady-state answer ---
-// The snapshot engine is the oracle for the tick engine. Under constant load a
-// ticked run settles into exactly what runSimulation computes; a mismatch means
-// the tick model corrupts propagation, not that the tolerance is too tight.
-{
-  let worstDrift = 0;
-  let worstWhere = "";
-  for (const p of PROBLEMS) {
-    const { nodes, edges } = buildReferenceGraph(p);
-    const steady = runSimulation(nodes, edges, 100000, 0.9);
-    const ticked = runTickedSimulation(nodes, edges, 100000, {
-      scenario: "steady",
-      ticks: 20,
-      readRatio: 0.9,
-    });
-    for (const n of nodes) {
-      const a = steady.nodeMetrics.get(n.id);
-      const b = ticked.nodeMetrics.get(n.id);
-      if (!a || !b) continue;
-      const drift = Math.abs(b.incomingQPS - a.incomingQPS) / Math.max(1, a.incomingQPS);
-      if (drift > worstDrift) {
-        worstDrift = drift;
-        worstWhere = `${p.id}/${String(n.data.componentId)}`;
-      }
-    }
-    // Per-tick invariants that must hold regardless of scenario.
-    for (const s of ticked.series) {
-      if (s.deliveredQPS > s.offeredQPS + 1e-6) {
-        errors.push(`ticks: "${p.id}" tick ${s.t} delivered more than was offered`);
-        break;
-      }
-      if (s.backlogTotal < 0) {
-        errors.push(`ticks: "${p.id}" tick ${s.t} has negative backlog`);
-        break;
-      }
-    }
-  }
-  if (worstDrift > 0.01) {
-    errors.push(
-      `ticks: steady-state convergence drifts ${(worstDrift * 100).toFixed(2)}% at ${worstWhere} — the tick model disagrees with the snapshot engine`,
-    );
-  }
-}
+// NOTE: behavioural assertions (scoring floors, tick convergence) live in
+// vitest suites, not here. This script validates DATA invariants — ids resolve,
+// nothing collides, icons exist, schemas are well-formed. Keeping the two apart
+// stops this file becoming the place every check lands.
 
 // --- Report ---
 // Every check must run before this block, or its failures are unreachable.

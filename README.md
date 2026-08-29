@@ -59,6 +59,7 @@ It runs entirely in your browser. No account, no backend, no data leaves your ma
 - [How the Simulation Works](#-how-the-simulation-works)
 - [Quick Start](#-quick-start)
 - [Keyboard Shortcuts](#keyboard-shortcuts)
+- [Testing](#-testing)
 - [Tech Stack](#-tech-stack)
 - [Project Structure](#project-structure)
 - [Contributing](#-contributing)
@@ -380,6 +381,38 @@ Open **http://localhost:3000** — that's it. Everything runs client-side; your 
 | `Ctrl/⌘ + Z` | Undo | | `Ctrl/⌘ + E` | Export as PNG |
 | `Ctrl/⌘ + Shift + Z` / `Ctrl + Y` | Redo | | `Delete` | Remove selected node/edge |
 | `Escape` | Deselect | | | |
+
+---
+
+## 🧪 Testing
+
+```bash
+npm test          # 88 tests, ~1s
+npm run test:watch
+npm run build     # gates on check:catalog + test + tsc
+```
+
+Two layers, with different jobs:
+
+| | Covers |
+|---|---|
+| **`npm test`** (vitest) | Behaviour: both simulation engines, capacity derivation, connection rules, cost arithmetic, scoring, and save/load migration |
+| **`npm run check:catalog`** | Data invariants: ids resolve, nothing collides, icons exist, config schemas are well-formed, reference topologies are sound |
+
+Everything tested is **pure and deterministic** — no browser, no DOM, no mocks.
+
+The tests double as regression guards for bugs that actually shipped, each one documented at the assertion:
+
+- ALB silently stopped splitting traffic when the catalog renamed `load-balancer` → `alb`
+- Queue backlog was measured against the queue's own ceiling instead of its consumer's drain rate, making it permanently zero
+- Retries converged to 4.6× baseline while sitting under the storm cap, so no warning fired
+- A free-tier `$0` first tier was read as DynamoDB's real price
+- A wrong SKU made `us-east-1` come out at 0.801× itself, skewing every region
+- 86 hardcoded component ids in scoring returned false after the AWS rename, dropping reference solutions to 27/100
+
+### What tests deliberately do not cover
+
+Icon rendering in both themes, PNG export inlining images, drag-and-drop, the timeline scrubber, and touch behaviour. These are genuinely visual, and shallow DOM tests would pass without proving anything about them — so they stay manual, and the boundary is stated rather than assumed.
 
 ---
 
