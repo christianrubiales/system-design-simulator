@@ -82,3 +82,59 @@ describe("buildReferenceGraph", () => {
     expect(edges.length).toBe(problem.referenceSolution.edges.length);
   });
 });
+
+describe("layout", () => {
+  // Node footprint plus the gap we require around it.
+  const W = 140, H = 100, GAP = 24;
+
+  it("never overlaps two nodes, in any reference solution", () => {
+    // 32 of 35 solutions used to have crowded nodes and two had nodes stacked
+    // at the identical point. Positions are computed now, so this holds for
+    // solutions edited later too.
+    for (const p of PROBLEMS) {
+      const { nodes } = buildReferenceGraph(p);
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const a = nodes[i].position;
+          const b = nodes[j].position;
+          const clash = Math.abs(a.x - b.x) < W + GAP && Math.abs(a.y - b.y) < H + GAP;
+          expect(
+            clash,
+            `${p.id}: ${nodes[i].data.componentId} overlaps ${nodes[j].data.componentId}`,
+          ).toBe(false);
+        }
+      }
+    }
+  });
+
+  it("puts every node at a non-negative position", () => {
+    for (const p of PROBLEMS) {
+      for (const n of buildReferenceGraph(p).nodes) {
+        expect(n.position.x, p.id).toBeGreaterThanOrEqual(0);
+        expect(n.position.y, p.id).toBeGreaterThanOrEqual(0);
+      }
+    }
+  });
+
+  it("leaves no empty columns — a cycle must not stretch the canvas", () => {
+    // web-crawler (EC2 -> SQS -> EC2) once reached depth 14 across two occupied
+    // columns, producing a 3,500px canvas of mostly blank space.
+    for (const p of PROBLEMS) {
+      const xs = [...new Set(buildReferenceGraph(p).nodes.map((n) => n.position.x))].sort(
+        (a, b) => a - b,
+      );
+      const widest = xs[xs.length - 1];
+      expect(widest / 250, `${p.id} has gaps between columns`).toBe(xs.length - 1);
+    }
+  });
+
+  it("flows left to right along the request path", () => {
+    // An edge should point rightwards or stay in place; never backwards, except
+    // where the solution genuinely loops.
+    const { nodes, edges } = buildReferenceGraph(PROBLEMS.find((p) => p.id === "url-shortener")!);
+    const at = new Map(nodes.map((n) => [n.id, n.position.x]));
+    for (const e of edges) {
+      expect(at.get(e.target)!).toBeGreaterThan(at.get(e.source)!);
+    }
+  });
+});
