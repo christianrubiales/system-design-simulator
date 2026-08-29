@@ -14,11 +14,13 @@ SystemForge — an open-source system-design interview simulator. Drag infrastru
 npm run dev      # dev server (http://localhost:3000)
 npm run build    # production build — also runs tsc; must pass before pushing
 npm run lint     # eslint
+npm test         # vitest — engines, config, rules, cost, scoring (pure logic, ~1s)
+npm run test:watch     # same, in watch mode
 npm run check:catalog  # catalog/bridge data invariants — `npm run build` gates on it
 npx tsc --noEmit # type-check only
 ```
 
-There are no unit tests; verify changes by building and exercising flows in the browser.
+**Tests are the first check, not the browser.** `npm test` (vitest, ~1s) covers the pure logic — both simulation engines, capacity derivation, connection rules, cost, scoring, save/load migration. `npm run check:catalog` covers data invariants. `npm run build` gates on both. **Add a test for any behaviour change.** Reserve the browser for what is genuinely visual: icon rendering in both themes, PNG export, drag-and-drop, the timeline scrubber, touch affordances.
 
 ## Tech stack
 
