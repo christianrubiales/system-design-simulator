@@ -10,7 +10,7 @@ const COMPUTE_CATEGORIES = new Set(["compute", "containers"]);
 
 export function scoreScalability(
   nodes: Node<ComponentNodeData>[],
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   _edges: Edge[],
   graph: ScoringGraph
 ): CategoryScore {

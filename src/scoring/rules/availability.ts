@@ -17,7 +17,7 @@ const DURABLE_STORES = new Set([
 // monitoring 3 + overload protection 3 + graceful degradation 3 + queue 2 = 20
 export function scoreAvailability(
   nodes: Node<ComponentNodeData>[],
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   _edges: Edge[],
   graph: ScoringGraph
 ): CategoryScore {
