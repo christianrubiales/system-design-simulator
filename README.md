@@ -391,7 +391,7 @@ Open **http://localhost:3000** — that's it. Everything runs client-side; your 
 ## 🧪 Testing
 
 ```bash
-npm test           # run once — 88 tests, ~1s
+npm test           # run once — 214 tests, ~2s
 npm run test:watch # stay running; re-runs only the tests your last save affected
 npm run build      # gates on check:catalog + test + tsc
 ```
@@ -400,7 +400,7 @@ Two layers, with different jobs:
 
 | | Covers |
 |---|---|
-| **`npm test`** (vitest) | Behaviour: both simulation engines, capacity derivation, connection rules, cost arithmetic, scoring, and save/load migration |
+| **`npm test`** (vitest) | Behaviour: both simulation engines, capacity derivation, connection rules, cost arithmetic, scoring rules, the concept bridge, and every store — undo/redo, the interview timer, import validation, persistence |
 | **`npm run check:catalog`** | Data invariants: ids resolve, nothing collides, icons exist, config schemas are well-formed, reference topologies are sound |
 
 Everything tested is **pure and deterministic** — no browser, no DOM, no mocks.
