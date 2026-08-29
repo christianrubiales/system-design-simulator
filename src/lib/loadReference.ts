@@ -79,18 +79,30 @@ export function buildReferenceGraph(problem: Problem): {
  * Open a problem's reference solution in a read-only canvas tab.
  * The user's current design stays untouched in its own tab.
  */
+/**
+ * Open a problem's reference solution as an EDITABLE copy in its own tab.
+ *
+ * Not read-only: the reference is a starting point you can pull apart, not a
+ * museum piece. Your own design lives in its own tab and is untouched.
+ *
+ * If the tab already exists we switch to it rather than rebuilding it —
+ * `addTab` replaces the contents of a tab with a matching id, which would
+ * silently discard whatever you had changed since you last opened it.
+ */
 export function loadReferenceIntoTab(problem: Problem): void {
-  const { nodes, edges } = buildReferenceGraph(problem);
+  const tabId = `ref-${problem.id}`;
+  const store = useCanvasStore.getState();
+  const existing = store.tabs.find((t) => t.id === tabId);
 
-  useCanvasStore.getState().addTab({
-    id: `ref-${problem.id}`,
-    label: `${problem.title} (Reference)`,
-    nodes,
-    edges,
-    readOnly: true,
-  });
+  if (existing) {
+    if (store.activeTabId !== tabId) store.switchTab(tabId);
+    return;
+  }
+
+  const { nodes, edges } = buildReferenceGraph(problem);
+  store.addTab({ id: tabId, label: `${problem.title} (Reference)`, nodes, edges });
 
   useAppStore
     .getState()
-    .showToast("Reference opened in new tab — your design is safe", "success");
+    .showToast("Reference opened in a new tab — edit it freely, your design is safe", "success");
 }

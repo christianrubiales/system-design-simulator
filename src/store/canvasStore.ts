@@ -472,8 +472,12 @@ export const useCanvasStore = create<CanvasState>()(
         // so an in-progress design comes back as AWS instead of sitting stale
         // beside an AWS palette. Custom components are left untouched.
         merged.nodes = upgradeComponentNodes(merged.nodes);
+        // Reference tabs used to be read-only. They are editable copies now, so
+        // clear the flag on anything persisted before that change — otherwise a
+        // returning user keeps a tab they cannot edit and no way to unlock it.
         merged.tabs = (merged.tabs ?? []).map((t) => ({
           ...t,
+          readOnly: false,
           nodes: upgradeComponentNodes(t.nodes),
         }));
         // Refill the active tab's snapshot from the live nodes/edges.

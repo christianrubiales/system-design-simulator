@@ -60,7 +60,7 @@ src/
 
 **Persistence schema.** `SerializedEdge` must carry `data` (label/protocol/async) or edge metadata is lost on save/load. Export/import use a unified envelope `{ schemaVersion, name, problemId, nodes, edges, strokes }`; `importDesign` validates structurally and returns `{ ok, error? }`.
 
-**Canvas/UI.** `nodeTypes`/`edgeTypes` are module-level (never inline — causes remounts). Reference tabs (`tab.readOnly`) must gate dragging/connecting/dropping/delete. Keyboard shortcuts must no-op while typing in inputs; there is one delete path (`deleteKeyCode={null}` on ReactFlow + the AppShell handler covering node AND edge selection). Dialogs go through `ModalShell`. Touch: hover-only affordances are invisible on coarse pointers (Tailwind v4 gates `hover:` behind `@media(hover:hover)`) — gate visibility on `useIsCoarsePointer()` instead.
+**Canvas/UI.** `nodeTypes`/`edgeTypes` are module-level (never inline — causes remounts). Selecting a built-in problem opens its reference immediately as an **editable copy** in its own tab (`loadReferenceIntoTab`); there is no separate Reference button. Re-selecting the same problem must **switch** to the existing tab, never rebuild it — `addTab` replaces a matching tab's contents and would silently discard the user's edits. The `tab.readOnly` gating still exists and is honoured, but nothing sets it any more. Keyboard shortcuts must no-op while typing in inputs; there is one delete path (`deleteKeyCode={null}` on ReactFlow + the AppShell handler covering node AND edge selection). Dialogs go through `ModalShell`. Touch: hover-only affordances are invisible on coarse pointers (Tailwind v4 gates `hover:` behind `@media(hover:hover)`) — gate visibility on `useIsCoarsePointer()` instead.
 
 ## Data conventions
 

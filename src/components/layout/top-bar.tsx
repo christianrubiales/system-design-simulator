@@ -153,12 +153,6 @@ export function TopBar({ onSimulate, onScore, onClearCanvas, onSave, onLoad, onS
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleExportPng]);
 
-  const loadReference = useCallback(() => {
-    const problem = PROBLEMS.find((p) => p.id === selectedProblemId);
-    if (!problem) return;
-    // Opens the reference in a NEW read-only tab — user's design stays safe
-    loadReferenceIntoTab(problem);
-  }, [selectedProblemId]);
 
   return (
     <>
@@ -240,13 +234,16 @@ export function TopBar({ onSimulate, onScore, onClearCanvas, onSave, onLoad, onS
                   <div className="my-0.5 h-px bg-zinc-700" />
                 )}
 
-                {/* Predefined problems */}
+                {/* Predefined problems — selecting one opens its reference as an
+                    editable copy straight away. Custom problems above are not
+                    treated this way: they have no reference solution to open. */}
                 {PROBLEMS.map((problem) => (
                   <button
                     key={problem.id}
                     onClick={() => {
                       setSelectedProblem(problem.id);
                       setDropdownOpen(false);
+                      loadReferenceIntoTab(problem);
                     }}
                     className={`flex w-full items-center px-3 py-1.5 text-left text-xs transition-colors hover:bg-zinc-700 ${
                       problem.id === selectedProblemId
@@ -262,16 +259,8 @@ export function TopBar({ onSimulate, onScore, onClearCanvas, onSave, onLoad, onS
           )}
         </div>
 
-        {!selectedProblemId.startsWith("custom-") && (
-          <button
-            onClick={loadReference}
-            className="hidden shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-300 md:flex"
-            title="Load reference solution"
-          >
-            <Download className="h-3 w-3" />
-            Reference
-          </button>
-        )}
+        {/* The "Reference" button is gone: picking a problem from the dropdown
+            opens its reference automatically. */}
 
         <div className="mx-1 hidden h-4 w-px bg-zinc-800 md:block" />
 
@@ -330,16 +319,8 @@ export function TopBar({ onSimulate, onScore, onClearCanvas, onSave, onLoad, onS
             <>
               <div className="fixed inset-0 z-40" onClick={() => setMobileMoreOpen(false)} />
               <div className="absolute left-0 top-full z-50 mt-1 w-60 rounded-md border border-zinc-700 bg-zinc-900 py-1 shadow-lg">
-                {/* Design actions */}
-                {!selectedProblemId.startsWith("custom-") && (
-                  <button
-                    onClick={() => { setMobileMoreOpen(false); loadReference(); }}
-                    className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs text-zinc-300 transition-colors hover:bg-zinc-800"
-                  >
-                    <Download className="h-3.5 w-3.5 text-zinc-500" />
-                    Load reference solution
-                  </button>
-                )}
+                {/* Design actions. No "load reference" entry: selecting a
+                    problem from the dropdown already opens it. */}
                 <button
                   onClick={() => { setMobileMoreOpen(false); addTextNote(); }}
                   className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs text-zinc-300 transition-colors hover:bg-zinc-800"
