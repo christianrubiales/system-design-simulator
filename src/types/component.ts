@@ -8,6 +8,8 @@ export type AwsCategory =
   | "analytics"
   | "security"
   | "observability"
+  | "ai"
+  | "devtools"
   | "pattern";
 
 /** Legacy category strings kept so pre-AWS persisted nodes still render with color. */

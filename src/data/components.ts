@@ -997,6 +997,455 @@ export const SYSTEM_COMPONENTS: SystemComponent[] = [
     description:
       "Manages feature flags and dynamic configuration separately from deployments, validating changes and rolling them out gradually with automatic rollback on a CloudWatch alarm. Lets you ship code dark and enable it per segment without redeploying. The controlled-rollout half is what distinguishes it from stuffing config in environment variables.",
   },
+  // ---- Extended catalog: available, not necessarily recommended for interviews ----
+  {
+    id: "transit-gateway",
+    label: "Transit Gateway",
+    category: "networking",
+    icon: "Network",
+    awsIcon: "transit-gateway",
+    awsService: "AWS Transit Gateway",
+    managed: true,
+    // Source: Scales to 50 Gbps per attachment; not a request-path bottleneck.
+    maxQPS: 1000000,
+    latencyMs: 1,
+    scalable: true,
+    stateful: false,
+    description:
+      "Hub-and-spoke router connecting many VPCs, accounts, and on-premises networks through one attachment point instead of a mesh of peering connections. The answer when an interviewer asks how fifty VPCs talk to each other without n-squared peering.",
+  },
+  {
+    id: "direct-connect",
+    label: "Direct Connect",
+    category: "networking",
+    icon: "Network",
+    awsIcon: "direct-connect",
+    awsService: "AWS Direct Connect",
+    managed: true,
+    // Source: Dedicated circuits from 50 Mbps to 100 Gbps; latency depends on physical distance.
+    maxQPS: 1000000,
+    latencyMs: 2,
+    scalable: false,
+    stateful: false,
+    description:
+      "A dedicated physical network link from your data centre to AWS, bypassing the public internet for consistent latency and lower egress costs at volume. Pair it with a VPN as backup — a single circuit is a single point of failure.",
+  },
+  {
+    id: "batch",
+    label: "Batch",
+    category: "compute",
+    icon: "Box",
+    awsIcon: "batch",
+    awsService: "AWS Batch",
+    managed: true,
+    // Source: Job-shaped, not request-shaped; throughput depends entirely on job duration.
+    maxQPS: 1000,
+    latencyMs: 5000,
+    scalable: true,
+    stateful: false,
+    description:
+      "Runs batch computing jobs by provisioning the right amount of compute automatically, queueing work and scaling EC2 or Fargate to match. For long-running analysis, rendering, and scientific workloads that do not belong on a request path.",
+  },
+  {
+    id: "app-runner",
+    label: "App Runner",
+    category: "compute",
+    icon: "Server",
+    awsIcon: "app-runner",
+    awsService: "AWS App Runner",
+    managed: true,
+    // Source: Assumes a light API at roughly 5,000 req/s per service instance.
+    maxQPS: 5000,
+    latencyMs: 20,
+    scalable: true,
+    stateful: false,
+    description:
+      "Takes a container image or source repository and runs it as an autoscaling web service with a URL, TLS, and deployments handled for you. The lowest-ceremony way to get a containerised service online; you trade fine-grained control for not configuring load balancers, clusters, or scaling policies.",
+  },
+  {
+    id: "beanstalk",
+    label: "Elastic Beanstalk",
+    category: "compute",
+    icon: "Server",
+    awsIcon: "beanstalk",
+    awsService: "AWS Elastic Beanstalk",
+    managed: true,
+    // Source: Provisions EC2 behind an ALB; per-instance throughput matches EC2.
+    maxQPS: 5000,
+    latencyMs: 20,
+    scalable: true,
+    stateful: false,
+    description:
+      "Provisions and manages the EC2 instances, load balancer, and scaling group behind a conventional web application from an uploaded bundle. Largely superseded by containers and App Runner for new work, but still common in existing estates.",
+  },
+  {
+    id: "lightsail",
+    label: "Lightsail",
+    category: "compute",
+    icon: "Server",
+    awsIcon: "lightsail",
+    awsService: "Amazon Lightsail",
+    managed: true,
+    // Source: Small fixed-size instances; models a modest bundle.
+    maxQPS: 2000,
+    latencyMs: 20,
+    scalable: false,
+    stateful: false,
+    description:
+      "Fixed-price virtual servers bundling compute, storage, and transfer allowance, aimed at small sites and simple applications. Deliberately not the answer to a scaling question — reach for EC2, ECS, or Lambda when the design has to grow.",
+  },
+  {
+    id: "auto-scaling",
+    label: "Auto Scaling",
+    category: "compute",
+    icon: "TrendingUp",
+    awsIcon: "auto-scaling",
+    awsService: "Amazon EC2 Auto Scaling",
+    managed: true,
+    // Source: A control plane, not a request-path hop.
+    maxQPS: 1000000,
+    latencyMs: 0,
+    scalable: true,
+    stateful: false,
+    description:
+      "Adds and removes EC2 instances to keep a group at the size your policy targets, replacing unhealthy instances automatically. Note the lag: scaling reacts to sustained load over minutes, so it protects against growth, not against a sudden spike.",
+  },
+  {
+    id: "ecr",
+    label: "ECR",
+    category: "containers",
+    icon: "Archive",
+    awsIcon: "ecr",
+    awsService: "Amazon Elastic Container Registry",
+    managed: true,
+    // Source: Registry pull throughput; off the request path in steady state.
+    maxQPS: 10000,
+    latencyMs: 50,
+    scalable: true,
+    stateful: true,
+    description:
+      "Private Docker registry that ECS, EKS, and Lambda pull images from, with vulnerability scanning and lifecycle policies to expire old tags. Image pull latency matters at scale-out: a large image slows every cold start.",
+  },
+  {
+    id: "backup",
+    label: "Backup",
+    category: "storage",
+    icon: "Archive",
+    awsIcon: "backup",
+    awsService: "AWS Backup",
+    managed: true,
+    // Source: Scheduled jobs, not request traffic.
+    maxQPS: 1000,
+    latencyMs: 1000,
+    scalable: true,
+    stateful: true,
+    description:
+      "Centralises backup policy across EBS, RDS, DynamoDB, EFS, and more, with scheduling, retention, and cross-region copy in one place. The answer to 'what is your recovery story?' that is not 'we have snapshots somewhere'.",
+  },
+  {
+    id: "fsx",
+    label: "FSx",
+    category: "storage",
+    icon: "FolderOpen",
+    awsIcon: "fsx",
+    awsService: "Amazon FSx",
+    managed: true,
+    // Source: Lustre scales to hundreds of GB/s; figure models a mid-size deployment.
+    maxQPS: 100000,
+    latencyMs: 1,
+    scalable: true,
+    stateful: true,
+    description:
+      "Managed high-performance file systems — Lustre for HPC and machine-learning training, Windows File Server for SMB workloads. Reach for it when EFS is not fast enough or the workload needs Windows file semantics.",
+  },
+  {
+    id: "ses",
+    label: "SES",
+    category: "integration",
+    icon: "Bell",
+    awsIcon: "ses",
+    awsService: "Amazon Simple Email Service",
+    managed: true,
+    // Source: Default production send rate starts at 14 messages/second and grows with reputation.
+    maxQPS: 14,
+    latencyMs: 100,
+    scalable: true,
+    stateful: false,
+    description:
+      "Sends transactional and bulk email at scale with bounce, complaint, and delivery tracking. New accounts start in a sandbox at 1 message/second and 200/day until you request production access — a detail worth knowing before designing a notification system around it.",
+  },
+  {
+    id: "mq",
+    label: "Amazon MQ",
+    category: "integration",
+    icon: "MessageSquare",
+    awsIcon: "mq",
+    awsService: "Amazon MQ",
+    managed: true,
+    // Source: Broker-instance dependent; models a mid-size single broker.
+    maxQPS: 10000,
+    latencyMs: 10,
+    scalable: false,
+    stateful: true,
+    description:
+      "Managed ActiveMQ or RabbitMQ for applications that need JMS, AMQP, MQTT, or STOMP. Choose it when migrating an existing broker-based system; choose SQS or SNS when building new, since they scale without brokers to size.",
+  },
+  {
+    id: "iot-core",
+    label: "IoT Core",
+    category: "integration",
+    icon: "Radio",
+    awsIcon: "iot-core",
+    awsService: "AWS IoT Core",
+    managed: true,
+    // Source: Default account quotas are in the tens of thousands of messages/second.
+    maxQPS: 20000,
+    latencyMs: 20,
+    scalable: true,
+    stateful: false,
+    description:
+      "Connects millions of devices over MQTT with device authentication, a rules engine for routing messages to other services, and a device shadow for offline state. The front door for any telemetry-heavy design.",
+  },
+  {
+    id: "emr",
+    label: "EMR",
+    category: "analytics",
+    icon: "Warehouse",
+    awsIcon: "emr",
+    awsService: "Amazon EMR",
+    managed: true,
+    // Source: Batch cluster throughput is job-shaped, not request-shaped.
+    maxQPS: 500,
+    latencyMs: 5000,
+    scalable: true,
+    stateful: true,
+    description:
+      "Managed Hadoop, Spark, Hive, and Presto clusters for large-scale batch processing. Heavier than Glue and more controllable; the right answer when you need specific framework versions or long-running clusters rather than serverless ETL.",
+  },
+  {
+    id: "shield",
+    label: "Shield",
+    category: "security",
+    icon: "ShieldCheck",
+    awsIcon: "shield",
+    awsService: "AWS Shield",
+    managed: true,
+    // Source: Operates inline at the edge; adds no measurable request latency.
+    maxQPS: 1000000,
+    latencyMs: 0,
+    scalable: true,
+    stateful: false,
+    description:
+      "DDoS protection. Standard is on by default at no cost for all AWS customers; Advanced adds layer 7 protections, a response team, and cost protection against scaling caused by an attack. Pair it with WAF at CloudFront or ALB.",
+  },
+  {
+    id: "acm",
+    label: "Certificate Manager",
+    category: "security",
+    icon: "Lock",
+    awsIcon: "acm",
+    awsService: "AWS Certificate Manager",
+    managed: true,
+    // Source: A control plane, not a request-path hop.
+    maxQPS: 1000000,
+    latencyMs: 0,
+    scalable: true,
+    stateful: true,
+    description:
+      "Issues and renews TLS certificates for CloudFront, ALB, and API Gateway automatically and free of charge. Removes expiry outages — a common real-world incident — from your design entirely.",
+  },
+  {
+    id: "cloudtrail",
+    label: "CloudTrail",
+    category: "observability",
+    icon: "Activity",
+    awsIcon: "cloudtrail",
+    awsService: "AWS CloudTrail",
+    managed: true,
+    // Source: Audit logging, off the request path.
+    maxQPS: 100000,
+    latencyMs: 0,
+    scalable: true,
+    stateful: true,
+    description:
+      "Records every AWS API call — who did what, when, and from where — for audit, compliance, and incident forensics. The answer to 'how would you know who deleted the table?'.",
+  },
+  {
+    id: "systems-manager",
+    label: "Systems Manager",
+    category: "observability",
+    icon: "Settings",
+    awsIcon: "systems-manager",
+    awsService: "AWS Systems Manager",
+    managed: true,
+    // Source: Control-plane operations; Parameter Store reads are cached by clients.
+    maxQPS: 10000,
+    latencyMs: 10,
+    scalable: true,
+    stateful: true,
+    description:
+      "Operational tooling for fleets: patching, run commands, session access without SSH keys or bastion hosts, and Parameter Store for configuration and secrets. Session Manager is the modern answer to 'how do you get a shell on that instance?'.",
+  },
+  {
+    id: "organizations",
+    label: "Organizations",
+    category: "observability",
+    icon: "Users",
+    awsIcon: "organizations",
+    awsService: "AWS Organizations",
+    managed: true,
+    // Source: Governance, not a request-path hop.
+    maxQPS: 1000000,
+    latencyMs: 0,
+    scalable: true,
+    stateful: true,
+    description:
+      "Manages many AWS accounts as one organization with consolidated billing and service control policies. Account-per-environment or account-per-team is the standard blast-radius boundary in a mature design.",
+  },
+  {
+    id: "bedrock",
+    label: "Bedrock",
+    category: "ai",
+    icon: "Sparkles",
+    awsIcon: "bedrock",
+    awsService: "Amazon Bedrock",
+    managed: true,
+    // Source: Model-dependent; quotas are expressed in tokens per minute, not QPS.
+    maxQPS: 1000,
+    latencyMs: 2000,
+    scalable: true,
+    stateful: false,
+    description:
+      "Serverless access to foundation models from several providers behind one API, with knowledge bases for retrieval-augmented generation and guardrails for content filtering. Token throughput, not requests per second, is the real capacity limit.",
+  },
+  {
+    id: "sagemaker",
+    label: "SageMaker",
+    category: "ai",
+    icon: "Sparkles",
+    awsIcon: "sagemaker",
+    awsService: "Amazon SageMaker",
+    managed: true,
+    // Source: Endpoint throughput depends on instance type and model size.
+    maxQPS: 5000,
+    latencyMs: 50,
+    scalable: true,
+    stateful: false,
+    description:
+      "End-to-end machine learning: training jobs, model hosting, and real-time or batch inference endpoints. In a design, the inference endpoint is what sits on the request path — training is offline.",
+  },
+  {
+    id: "rekognition",
+    label: "Rekognition",
+    category: "ai",
+    icon: "Search",
+    awsIcon: "rekognition",
+    awsService: "Amazon Rekognition",
+    managed: true,
+    // Source: Default is roughly 50 transactions/second per operation, raisable.
+    maxQPS: 50,
+    latencyMs: 300,
+    scalable: true,
+    stateful: false,
+    description:
+      "Image and video analysis — object and scene detection, moderation, face comparison, text in images. Commonly paired with S3 event notifications to process uploads asynchronously rather than in the request path.",
+  },
+  {
+    id: "textract",
+    label: "Textract",
+    category: "ai",
+    icon: "Search",
+    awsIcon: "textract",
+    awsService: "Amazon Textract",
+    managed: true,
+    // Source: Synchronous operations default to single-digit TPS; async for large documents.
+    maxQPS: 10,
+    latencyMs: 1000,
+    scalable: true,
+    stateful: false,
+    description:
+      "Extracts text, forms, and tables from scanned documents, going beyond plain OCR to preserve structure. Asynchronous for multi-page documents, which is why it belongs behind a queue rather than on a synchronous path.",
+  },
+  {
+    id: "mediaconvert",
+    label: "MediaConvert",
+    category: "ai",
+    icon: "Waves",
+    awsIcon: "mediaconvert",
+    awsService: "AWS Elemental MediaConvert",
+    managed: true,
+    // Source: Job-shaped; transcode duration scales with video length and rendition count.
+    maxQPS: 100,
+    latencyMs: 60000,
+    scalable: true,
+    stateful: false,
+    description:
+      "File-based video transcoding into the renditions and formats adaptive-bitrate streaming needs. Jobs take minutes, so it belongs behind a queue with the player reading finished output from S3 via CloudFront.",
+  },
+  {
+    id: "codepipeline",
+    label: "CodePipeline",
+    category: "devtools",
+    icon: "GitBranch",
+    awsIcon: "codepipeline",
+    awsService: "AWS CodePipeline",
+    managed: true,
+    // Source: Pipeline executions, not request traffic.
+    maxQPS: 100,
+    latencyMs: 1000,
+    scalable: true,
+    stateful: true,
+    description:
+      "Orchestrates release stages — source, build, test, deploy — with approvals and automatic rollback. The spine of a CI/CD design; the build and deploy steps are separate services.",
+  },
+  {
+    id: "codebuild",
+    label: "CodeBuild",
+    category: "devtools",
+    icon: "Box",
+    awsIcon: "codebuild",
+    awsService: "AWS CodeBuild",
+    managed: true,
+    // Source: Build-shaped; duration dominates and varies hugely by project.
+    maxQPS: 100,
+    latencyMs: 60000,
+    scalable: true,
+    stateful: false,
+    description:
+      "Runs build and test jobs on managed compute, billed per build minute with no build servers to keep patched. Scales to many concurrent builds, which is what stops a queue forming in front of your pipeline.",
+  },
+  {
+    id: "codedeploy",
+    label: "CodeDeploy",
+    category: "devtools",
+    icon: "Zap",
+    awsIcon: "codedeploy",
+    awsService: "AWS CodeDeploy",
+    managed: true,
+    // Source: Deployment operations, not request traffic.
+    maxQPS: 100,
+    latencyMs: 1000,
+    scalable: true,
+    stateful: false,
+    description:
+      "Automates deployments to EC2, ECS, and Lambda with blue/green and canary strategies plus automatic rollback on alarm. The mechanism behind a 'how do you ship without downtime?' answer.",
+  },
+  {
+    id: "amplify",
+    label: "Amplify",
+    category: "compute",
+    icon: "Cloudy",
+    awsIcon: "amplify",
+    awsService: "AWS Amplify",
+    managed: true,
+    // Source: Served from a CDN; throughput follows CloudFront rather than an origin.
+    maxQPS: 50000,
+    latencyMs: 20,
+    scalable: true,
+    stateful: false,
+    description:
+      "Builds and hosts frontend web applications on a global CDN with CI/CD from a Git branch, preview environments, and easy wiring to AppSync and Cognito. Handles the frontend half of a full-stack design that CloudFront plus S3 would otherwise need assembling by hand.",
+  },
 ];
 
 /**
@@ -1017,6 +1466,8 @@ export const CATEGORY_STYLE: Record<
   analytics: { label: "Analytics", chip: "bg-teal-500/10", icon: "text-teal-400", ring: "ring-teal-500/25" },
   security: { label: "Security", chip: "bg-rose-500/10", icon: "text-rose-400", ring: "ring-rose-500/25" },
   observability: { label: "Observability", chip: "bg-cyan-500/10", icon: "text-cyan-400", ring: "ring-cyan-500/25" },
+  ai: { label: "AI & ML", chip: "bg-fuchsia-500/10", icon: "text-fuchsia-400", ring: "ring-fuchsia-500/25" },
+  devtools: { label: "Developer Tools", chip: "bg-lime-500/10", icon: "text-lime-400", ring: "ring-lime-500/25" },
   pattern: { label: "Patterns", chip: "bg-zinc-500/10", icon: "text-zinc-300", ring: "ring-zinc-500/25" },
   // Legacy keys — retained so nodes persisted before the AWS catalog keep their color.
   messaging: { label: "Messaging", chip: "bg-emerald-500/10", icon: "text-emerald-400", ring: "ring-emerald-500/25" },
@@ -1043,5 +1494,7 @@ export const COMPONENT_CATEGORIES = [
   "analytics",
   "security",
   "observability",
+  "ai",
+  "devtools",
   "pattern",
 ] as const satisfies readonly ComponentCategory[];
