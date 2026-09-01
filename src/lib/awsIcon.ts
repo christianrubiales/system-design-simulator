@@ -1,4 +1,5 @@
 import type { SystemComponent } from "@/types/component";
+import { assetPath } from "@/lib/assetPath";
 
 /**
  * Public URL for a component's bundled AWS icon, or undefined to fall back to
@@ -10,5 +11,5 @@ import type { SystemComponent } from "@/types/component";
 export function awsIconUrl(
   component: Pick<SystemComponent, "awsIcon"> | undefined,
 ): string | undefined {
-  return component?.awsIcon ? `/aws-icons/${component.awsIcon}.svg` : undefined;
+  return component?.awsIcon ? assetPath(`/aws-icons/${component.awsIcon}.svg`) : undefined;
 }

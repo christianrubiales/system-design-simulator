@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { X, Copy, Check, Coffee, Heart } from "lucide-react";
 import { ModalShell } from "./ModalShell";
+import { assetPath } from "@/lib/assetPath";
 
 interface SupportDialogProps {
   open: boolean;
@@ -109,7 +110,7 @@ export function SupportDialog({ open, onClose }: SupportDialogProps) {
             </p>
             <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-100 p-1.5 shadow-lg">
               <Image
-                src="/support-upi-qr.jpg"
+                src={assetPath("/support-upi-qr.jpg")}
                 alt="UPI QR code — scan to support Vijay Gupta"
                 width={1012}
                 height={1600}

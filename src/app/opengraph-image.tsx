@@ -1,6 +1,9 @@
 import { ImageResponse } from "next/og";
 
-export const runtime = "edge";
+// `output: "export"` requires this route to opt in to prerendering, and it
+// must NOT declare `runtime = "edge"` — an edge route cannot be prerendered,
+// so the image would silently never be emitted.
+export const dynamic = "force-static";
 export const alt = "SystemForge — System Design Interview Simulator";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";

@@ -84,5 +84,6 @@ src/
 
 - **Light and dark themes both ship.** The toggle lives in `appStore.ts` + `top-bar.tsx`, with an inline script in `layout.tsx` setting `.dark` before paint. Verify any UI change in **both**. Use zinc-* palette; sub-11px labels use `text-zinc-400`+ for contrast.
 - AWS icons in `public/aws-icons/` are CC-BY-ND 2.0, **not** MIT — see `THIRD-PARTY-NOTICES.md`. They must be redistributed and rendered **unmodified**: never recolor, re-proportion, or minify them, and never add the AWS logo or wordmark. `.gitattributes` pins them `-text` so line-ending normalization cannot alter them. Re-fetch with `scripts/fetch-aws-icons.ts`.
+- **Static export.** `output: "export"` → `out/`; the GitHub Pages workflow builds it with a base path. Any hand-written `public/` URL must go through `assetPath()` (`lib/assetPath.ts`) — Next rewrites `_next/*` and static imports from `basePath`, but never a string you assemble or a raw `<img src>`, so those 404 under `/<repo>/`. Nothing may be added that needs a server: no route handlers, no middleware, no server actions, and `opengraph-image.tsx` must keep `dynamic = "force-static"` **without** `runtime = "edge"` (edge routes can't prerender — the image silently vanishes).
 - Temp/scratch files: keep them out of the repo.
 - Commit messages: do NOT add Claude/AI attribution or co-author trailers.

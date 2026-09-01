@@ -1,6 +1,7 @@
 "use client";
 
 import { ModalShell } from "./ModalShell";
+import { assetPath } from "@/lib/assetPath";
 import {
   X, BookOpen, Boxes, GraduationCap, Activity, Command, Sparkles, PlayCircle,
 } from "lucide-react";
@@ -57,7 +58,7 @@ export function HowItWorksDialog({ open, onClose, onPickProblem, onPlayWalkthrou
       <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-zinc-800 bg-zinc-900/95 px-5 py-4 backdrop-blur">
         <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-mark.svg" alt="" width={26} height={26} className="h-[26px] w-[26px]" />
+          <img src={assetPath("/logo-mark.svg")} alt="" width={26} height={26} className="h-[26px] w-[26px]" />
           <div>
             <h2 className="font-display text-base font-bold tracking-tight text-zinc-50">How SystemForge works</h2>
             <p className="text-xs text-zinc-400">Build architectures, simulate traffic, and get scored like a real interview.</p>

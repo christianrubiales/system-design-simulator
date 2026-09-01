@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { assetPath } from "@/lib/assetPath";
 import {
   X, Play, Pause, ChevronLeft, ChevronRight, RotateCcw, Sparkles,
   Globe, Server, Database, Boxes, Network, Gauge, Command, Clock,
@@ -62,7 +63,7 @@ function SceneWelcome() {
         transition={{ type: "spring", stiffness: 180, damping: 14 }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo-mark.svg" alt="" width={72} height={72} className="h-[72px] w-[72px]" />
+        <img src={assetPath("/logo-mark.svg")} alt="" width={72} height={72} className="h-[72px] w-[72px]" />
       </motion.div>
       <div className="flex items-center gap-2">
         {[Globe, Server, Database].map((Icon, i) => (
@@ -277,7 +278,7 @@ function SceneOutro() {
         transition={{ type: "spring", stiffness: 200, damping: 13 }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo-mark.svg" alt="" width={64} height={64} className="h-16 w-16" />
+        <img src={assetPath("/logo-mark.svg")} alt="" width={64} height={64} className="h-16 w-16" />
       </motion.div>
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}

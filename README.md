@@ -59,6 +59,7 @@ It runs entirely in your browser. No account, no backend, no data leaves your ma
 - [How the Simulation Works](#-how-the-simulation-works)
 - [Quick Start](#-quick-start)
 - [Keyboard Shortcuts](#keyboard-shortcuts)
+- [Deploying](#-deploying)
 - [Testing](#-testing)
 - [Tech Stack](#-tech-stack)
 - [Project Structure](#project-structure)
@@ -385,6 +386,27 @@ Open **http://localhost:3000** — that's it. Everything runs client-side; your 
 | `Ctrl/⌘ + Z` | Undo | | `Ctrl/⌘ + E` | Export as PNG |
 | `Ctrl/⌘ + Shift + Z` / `Ctrl + Y` | Redo | | `Delete` | Remove selected node/edge |
 | `Escape` | Deselect | | | |
+
+---
+
+## 🚀 Deploying
+
+The app is a fully static, client-only bundle — no server, no API routes, no database. `npm run build` writes it to **`out/`**, which any static host will serve as-is.
+
+### GitHub Pages
+
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) builds and publishes on every push to `main`. Enable it once under **Settings → Pages → Build and deployment → Source: GitHub Actions**; nothing else to configure.
+
+A Pages *project* site is served from `/<repo>/` rather than the domain root, so the workflow passes the base path reported by `actions/configure-pages` into the build:
+
+| Variable | Effect |
+|----------|--------|
+| `NEXT_PUBLIC_BASE_PATH` | Next's `basePath`/`assetPrefix`, and the prefix `assetPath()` applies to `public/` URLs |
+| `NEXT_PUBLIC_SITE_URL` | Absolute base for the Open Graph image URL |
+
+Both default to empty / `localhost:3000`, so local builds and root deployments need no environment at all. Add a custom domain or move to a user/org site and `configure-pages` reports an empty base path — the build follows with no edit.
+
+> **Writing UI code:** any hand-written path into `public/` must go through `assetPath()` from [`src/lib/assetPath.ts`](src/lib/assetPath.ts). Next rewrites the URLs it owns (`_next/*`, static imports), but not a string you build yourself or a raw `<img src>` — those 404 under a base path.
 
 ---
 
